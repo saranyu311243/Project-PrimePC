@@ -1,0 +1,16 @@
+export const categories = [
+  { id: 'cpu', name: 'ซีพียู', icon: 'cpu' },
+  { id: 'motherboard', name: 'เมนบอร์ด', icon: 'motherboard' },
+  { id: 'gpu', name: 'การ์ดจอ', icon: 'gpu' },
+  { id: 'ram', name: 'แรม', icon: 'ram' },
+  { id: 'storage', name: 'ฮาร์ดไดรฟ์', icon: 'storage' },
+  { id: 'psu', name: 'พาวเวอร์ซัพพลาย', icon: 'psu' },
+  { id: 'cooling', name: 'ชุดระบายความร้อน', icon: 'cooling' },
+  { id: 'notebook', name: 'โน้ตบุ๊ก', icon: 'notebook' },
+  { id: 'monitor', name: 'จอมอนิเตอร์', icon: 'monitor' },
+  { id: 'keyboard', name: 'คีย์บอร์ด', icon: 'keyboard' },
+  { id: 'mouse', name: 'เมาส์', icon: 'mouse' },
+  { id: 'accessory', name: 'อุปกรณ์เสริม', icon: 'accessory' },
+  { id: 'case', name: 'เคส', icon: 'case' },
+  { id: 'headset', name: 'หูฟัง', icon: 'headset' },
+]

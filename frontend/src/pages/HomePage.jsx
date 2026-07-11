@@ -1,8 +1,21 @@
 import { Link } from 'react-router-dom'
+import {
+  MdOutlineAssignmentTurnedIn,
+  MdOutlineLocalShipping,
+  MdOutlineRecommend,
+  MdOutlineTimer,
+  MdOutlineVerifiedUser,
+} from 'react-icons/md'
+import CategoryIcon from '../components/CategoryIcon'
+import ProductCard from '../components/ProductCard'
 import heroImage from '../assets/primepc-hero.png'
+import cpuWideImage from '../assets/promo-cpu-wide.png'
 import deliveryImage from '../assets/promo-delivery.png'
 import gamingSetImage from '../assets/promo-gaming-set.png'
 import notebookImage from '../assets/promo-notebook.png'
+import { categories } from '../data/categories'
+import { brands } from '../data/brands'
+import { products } from '../data/products'
 
 const promotions = [
   {
@@ -23,6 +36,30 @@ const promotions = [
     image: gamingSetImage,
     alt: 'ชุดคอมพิวเตอร์เกมมิ่งครบชุด',
   },
+]
+
+const sidebarCategoryIds = [
+  'cpu',
+  'motherboard',
+  'gpu',
+  'ram',
+  'psu',
+  'mouse',
+  'keyboard',
+  'monitor',
+  'accessory',
+  'cooling',
+]
+
+const sidebarCategories = sidebarCategoryIds.map((id) =>
+  categories.find((category) => category.id === id),
+)
+
+const serviceHighlights = [
+  { title: 'ส่งฟรีทั่วไทย', detail: 'เมื่อช้อปครบ 5,000 บาทขึ้นไป', icon: MdOutlineLocalShipping },
+  { title: 'เปลี่ยนคืนสินค้าง่าย', detail: 'เปลี่ยนสินค้าใหม่ภายใน 7 วัน', icon: MdOutlineAssignmentTurnedIn },
+  { title: 'รวดเร็วในการให้บริการ', detail: 'พร้อมให้คำแนะนำอย่างใส่ใจ', icon: MdOutlineTimer },
+  { title: 'ชำระเงินปลอดภัย', detail: 'มั่นใจด้วยระบบชำระเงินออนไลน์', icon: MdOutlineVerifiedUser },
 ]
 
 function HomePage() {
@@ -53,12 +90,12 @@ function HomePage() {
             >
               เลือกซื้อสินค้า
             </Link>
-            <Link
-              to="/products?category=computer-set"
+            <a
+              href="#featured-products"
               className="rounded-lg border border-white/60 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white hover:text-blue-800"
             >
-              ดูคอมจัดสเปก
-            </Link>
+              ดูสินค้าแนะนำ
+            </a>
           </div>
         </div>
       </section>
@@ -84,13 +121,127 @@ function HomePage() {
         ))}
       </section>
 
-      <section className="mt-8">
-        <h2 className="text-xl font-extrabold text-slate-900">
-          PrimePC ศูนย์รวมคอมพิวเตอร์และอุปกรณ์ไอที
-        </h2>
-        <p className="mt-3 text-sm leading-7 text-slate-600">
-          PrimePC ศูนย์รวมคอมพิวเตอร์และอุปกรณ์ไอทีครบวงจร คัดสรรสินค้าคุณภาพสำหรับทุกการใช้งาน ไม่ว่าจะเป็นคอมพิวเตอร์ประกอบ โน้ตบุ๊ก ซีพียู การ์ดจอ เมนบอร์ด หน่วยความจำ อุปกรณ์จัดเก็บข้อมูล รวมถึงเกมมิ่งเกียร์และอุปกรณ์เสริมอีกหลากหลายรายการ เราพร้อมช่วยให้คุณเลือกสเปกที่เหมาะกับงบประมาณ ทั้งสำหรับการเรียน การทำงาน การออกแบบ ตัดต่อวิดีโอ สตรีมมิง และเล่นเกม พร้อมโปรโมชันราคาคุ้มค่า บริการจัดส่งที่รวดเร็ว และการดูแลหลังการขาย เพื่อให้ทุกคนสามารถเป็นเจ้าของคอมพิวเตอร์ที่ตอบโจทย์ได้อย่างมั่นใจ
-        </p>
+      <section className="mt-10" aria-label="แบรนด์สินค้า">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
+          {brands.map((brand) => (
+            <Link
+              key={brand.id}
+              to={`/products?brand=${brand.id}`}
+              className="grid min-h-12 place-items-center border border-slate-300 bg-white px-3 py-2 text-center transition hover:border-sky-400 hover:shadow-sm"
+            >
+              <span
+                className="text-base font-black tracking-tight sm:text-lg"
+                style={{ color: brand.color }}
+              >
+                {brand.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-12" aria-labelledby="category-heading">
+        <div className="mb-5 flex items-center gap-3">
+          <span className="grid grid-cols-2 gap-1" aria-hidden="true">
+            <span className="h-2.5 w-2.5 rounded-sm bg-sky-500" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-blue-700" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-blue-700" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-sky-500" />
+          </span>
+          <h2 id="category-heading" className="text-xl font-extrabold text-slate-900">
+            หมวดหมู่สินค้า
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+          {categories.map((category) => (
+            <Link
+              key={category.id}
+              to={`/products?category=${category.id}`}
+              className="group flex min-h-20 items-center gap-3 rounded-xl border border-transparent bg-white px-4 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-md"
+            >
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-blue-50 text-2xl font-bold text-blue-800 transition group-hover:bg-blue-700 group-hover:text-white" aria-hidden="true">
+                <CategoryIcon name={category.icon} />
+              </span>
+              <span className="text-sm font-bold text-slate-700 transition group-hover:text-blue-700">
+                {category.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section id="featured-products" className="mt-16 scroll-mt-28" aria-labelledby="featured-products-heading">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <h2 id="featured-products-heading" className="flex items-center gap-3 text-2xl font-black text-slate-900">
+            <MdOutlineRecommend className="h-7 w-7 text-sky-500" aria-hidden="true" />
+            แนะนำสินค้า
+          </h2>
+          <Link to="/products" className="text-sm font-bold text-blue-700 hover:text-sky-500">
+            ดูทั้งหมด <span aria-hidden="true">▶</span>
+          </Link>
+        </div>
+
+        <div className="grid items-start gap-6 lg:grid-cols-[230px_1fr]">
+          <aside className="space-y-2 border border-slate-200 bg-white p-3 shadow-sm" aria-label="เลือกหมวดหมู่สินค้าแนะนำ">
+            {sidebarCategories.map((category) => (
+              <Link
+                key={category.id}
+                to={`/products?category=${category.id}`}
+                className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition ${
+                  category.id === 'motherboard'
+                    ? 'bg-blue-50 text-blue-700 shadow-sm'
+                    : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                }`}
+              >
+                <span className="grid w-6 place-items-center text-lg" aria-hidden="true">
+                  <CategoryIcon name={category.icon} className="h-5 w-5" />
+                </span>
+                {category.name}
+              </Link>
+            ))}
+          </aside>
+
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative mt-12 min-h-[230px] overflow-hidden rounded-xl bg-slate-950 shadow-lg sm:min-h-[260px]" aria-label="โปรโมชันซีพียู PrimePC">
+        <img
+          src={cpuWideImage}
+          alt="ซีพียูประสิทธิภาพสูงบนเมนบอร์ด"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-slate-950/85 to-transparent" />
+        <div className="relative z-10 flex min-h-[230px] max-w-2xl flex-col justify-center px-7 py-10 text-white sm:min-h-[260px] sm:px-12">
+          <p className="text-sm font-bold uppercase tracking-[0.2em] text-sky-400">PrimePC Performance</p>
+          <h2 className="mt-3 text-3xl font-black leading-tight sm:text-4xl">
+            ปลดล็อกพลังประมวลผล<br />อัปเกรดให้แรงกว่าเดิม
+          </h2>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-slate-300">
+            เลือกซีพียูประสิทธิภาพสูงสำหรับเล่นเกม ทำงาน และสร้างสรรค์ผลงาน พร้อมตัวเลือกที่เหมาะกับทุกงบประมาณ
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="จุดเด่นบริการ PrimePC">
+        {serviceHighlights.map((service) => {
+          const Icon = service.icon
+
+          return (
+            <div key={service.title} className="flex min-h-28 items-center gap-4 border border-slate-200 bg-white px-5 py-5 shadow-sm">
+              <Icon className="h-11 w-11 shrink-0 text-slate-500" aria-hidden="true" />
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800">{service.title}</h3>
+                <p className="mt-1 text-sm leading-5 text-slate-500">{service.detail}</p>
+              </div>
+            </div>
+          )
+        })}
       </section>
     </div>
   )

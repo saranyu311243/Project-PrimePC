@@ -1,0 +1,16 @@
+export const brands = [
+  { id: 'asus', name: 'ASUS', color: '#111827' },
+  { id: 'msi', name: 'MSI', color: '#dc2626' },
+  { id: 'intel', name: 'intel.', color: '#0284c7' },
+  { id: 'amd', name: 'AMD', color: '#111827' },
+  { id: 'lenovo', name: 'Lenovo', color: '#e2231a' },
+  { id: 'gigabyte', name: 'GIGABYTE', color: '#111827' },
+  { id: 'corsair', name: 'CORSAIR', color: '#111827' },
+  { id: 'logitech', name: 'logitech', color: '#38bdf8' },
+  { id: 'kingston', name: 'Kingston', color: '#dc2626' },
+  { id: 'hyperx', name: 'HYPERX', color: '#ef4444' },
+  { id: 'razer', name: 'RAZER', color: '#22c55e' },
+  { id: 'nvidia', name: 'NVIDIA', color: '#65a30d' },
+  { id: 'acer', name: 'acer', color: '#65a30d' },
+  { id: 'steelseries', name: 'steelseries', color: '#111827' },
+]

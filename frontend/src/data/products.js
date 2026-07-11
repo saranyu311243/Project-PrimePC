@@ -1,0 +1,18 @@
+export const products = [
+  { id: 1, name: 'AMD Ryzen 7 9700X', category: 'cpu', categoryName: 'ซีพียู', brand: 'AMD', price: 12900, icon: 'CPU', description: 'ซีพียู 8 คอร์ 16 เธรด สำหรับเกมและงานประสิทธิภาพสูง รองรับซ็อกเก็ต AM5' },
+  { id: 2, name: 'Intel Core Ultra 7 265K', category: 'cpu', categoryName: 'ซีพียู', brand: 'Intel', price: 13900, icon: 'CPU', description: 'หน่วยประมวลผลรุ่นใหม่ ให้ประสิทธิภาพรวดเร็วสำหรับการทำงานหลายโปรแกรม' },
+  { id: 3, name: 'GeForce RTX 5070 12GB', category: 'gpu', categoryName: 'การ์ดจอ', brand: 'NVIDIA', price: 24900, icon: 'GPU', description: 'การ์ดจอสำหรับเล่นเกมความละเอียดสูง พร้อมหน่วยความจำกราฟิก 12GB' },
+  { id: 4, name: 'Radeon RX 9070 XT 16GB', category: 'gpu', categoryName: 'การ์ดจอ', brand: 'AMD', price: 27900, icon: 'GPU', description: 'การ์ดจอประสิทธิภาพสูง หน่วยความจำ 16GB เหมาะสำหรับเกมและงานสร้างสรรค์' },
+  { id: 5, name: 'B850 Gaming WiFi AM5', category: 'motherboard', categoryName: 'เมนบอร์ด', brand: 'PrimePC', price: 7490, icon: 'MB', description: 'เมนบอร์ดเกมมิ่งรองรับ AMD AM5, DDR5 และการเชื่อมต่อ WiFi ความเร็วสูง' },
+  { id: 6, name: 'DDR5 RGB 32GB 6000MHz', category: 'ram', categoryName: 'แรม', brand: 'PrimePC', price: 3890, icon: 'RAM', description: 'แรม DDR5 ความจุ 32GB พร้อมไฟ RGB ทำงานลื่นไหลและตอบสนองรวดเร็ว' },
+  { id: 7, name: 'NVMe Gen4 SSD 1TB', category: 'storage', categoryName: 'อุปกรณ์จัดเก็บข้อมูล', brand: 'PrimePC', price: 2590, icon: 'SSD', description: 'SSD ความเร็วสูงแบบ NVMe Gen4 ความจุ 1TB เปิดเครื่องและโหลดเกมได้รวดเร็ว' },
+  { id: 8, name: 'Gaming Monitor 27 นิ้ว 180Hz', category: 'monitor', categoryName: 'จอมอนิเตอร์', brand: 'PrimePC', price: 6990, icon: 'MON', description: 'จอเกมมิ่ง 27 นิ้ว รีเฟรชเรต 180Hz แสดงภาพลื่นไหล สีสันคมชัด' },
+  { id: 9, name: 'X870 Pro WiFi DDR5 AM5', category: 'motherboard', categoryName: 'เมนบอร์ด', brand: 'PrimePC', price: 9990, icon: 'MB', description: 'เมนบอร์ดชิปเซ็ต X870 รองรับ DDR5 และ WiFi พร้อมภาคจ่ายไฟประสิทธิภาพสูง' },
+  { id: 10, name: 'DDR5 64GB 6000MHz Dual Kit', category: 'ram', categoryName: 'แรม', brand: 'PrimePC', price: 6890, icon: 'RAM', description: 'แรม DDR5 ความจุ 64GB แบบ Dual Channel เหมาะสำหรับงานหนักและมัลติทาสก์' },
+  { id: 11, name: 'NVMe Gen5 SSD 2TB', category: 'storage', categoryName: 'อุปกรณ์จัดเก็บข้อมูล', brand: 'PrimePC', price: 5990, icon: 'SSD', description: 'SSD NVMe Gen5 ความจุ 2TB อ่านเขียนรวดเร็ว เหมาะสำหรับเกมและไฟล์ขนาดใหญ่' },
+  { id: 12, name: 'Gaming Monitor 32 นิ้ว 240Hz', category: 'monitor', categoryName: 'จอมอนิเตอร์', brand: 'PrimePC', price: 11900, icon: 'MON', description: 'จอเกมมิ่ง 32 นิ้ว รีเฟรชเรต 240Hz ตอบสนองรวดเร็วสำหรับการแข่งขัน' },
+  { id: 13, name: 'Power Supply 850W 80+ Gold', category: 'psu', categoryName: 'พาวเวอร์ซัพพลาย', brand: 'PrimePC', price: 4290, icon: 'PSU', description: 'พาวเวอร์ซัพพลายกำลังไฟ 850W มาตรฐาน 80 Plus Gold จ่ายไฟเสถียรและประหยัดพลังงาน' },
+  { id: 14, name: 'Liquid Cooler 360 ARGB', category: 'cooling', categoryName: 'ชุดระบายความร้อน', brand: 'PrimePC', price: 4590, icon: 'AIO', description: 'ชุดน้ำปิดขนาด 360 มม. พร้อมไฟ ARGB ช่วยควบคุมอุณหภูมิซีพียูได้อย่างมีประสิทธิภาพ' },
+  { id: 15, name: 'Mechanical Keyboard RGB', category: 'keyboard', categoryName: 'คีย์บอร์ด', brand: 'PrimePC', price: 2490, icon: 'KEY', description: 'คีย์บอร์ดแมคคานิคอลพร้อมไฟ RGB ตอบสนองแม่นยำ เหมาะสำหรับเล่นเกมและทำงาน' },
+  { id: 16, name: 'Wireless Gaming Mouse Pro', category: 'mouse', categoryName: 'เมาส์', brand: 'PrimePC', price: 1890, icon: 'MOU', description: 'เมาส์เกมมิ่งไร้สายน้ำหนักเบา เซนเซอร์ความแม่นยำสูง และแบตเตอรี่ใช้งานได้ยาวนาน' },
+]

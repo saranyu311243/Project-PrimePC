@@ -1,32 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
-
-function SearchIcon() {
-  return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" strokeWidth="2" />
-      <path d="m20 20-4-4" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function CartIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-      <path d="M3 4h2l2 11h10l2-8H6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="9" cy="19" r="1.5" fill="currentColor" />
-      <circle cx="17" cy="19" r="1.5" fill="currentColor" />
-    </svg>
-  )
-}
-
-function UserIcon() {
-  return (
-    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c.6-5 3.2-7.5 8-7.5s7.4 2.5 8 7.5H4Z" />
-    </svg>
-  )
-}
+import { MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart } from 'react-icons/md'
+import { categories } from '../data/categories'
 
 function Navbar() {
   return (
@@ -50,27 +24,28 @@ function Navbar() {
             defaultValue="all"
           >
             <option value="all">หมวดหมู่สินค้า</option>
-            <option value="cpu">ซีพียู</option>
-            <option value="gpu">การ์ดจอ</option>
-            <option value="notebook">โน้ตบุ๊ก</option>
-            <option value="accessory">อุปกรณ์เสริม</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
           </select>
           <button type="submit" className="grid w-12 place-items-center bg-sky-500 text-white transition hover:bg-sky-600" aria-label="ค้นหา">
-            <SearchIcon />
+            <MdOutlineSearch className="h-6 w-6" aria-hidden="true" />
           </button>
         </form>
 
         <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
           <Link to="/cart" className="relative flex items-center gap-2 text-white hover:text-sky-200">
             <span className="relative">
-              <CartIcon />
+              <MdOutlineShoppingCart className="h-6 w-6" aria-hidden="true" />
               <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-sky-400 px-1 text-[10px] font-bold text-blue-950">0</span>
             </span>
             <span className="hidden text-xs font-semibold sm:inline">ตะกร้าสินค้า</span>
           </Link>
 
           <Link to="/login" className="flex items-center gap-2 border-l border-blue-600 pl-3 text-white hover:text-sky-200 sm:pl-5">
-            <UserIcon />
+            <MdOutlinePerson className="h-6 w-6" aria-hidden="true" />
             <span className="hidden text-xs font-semibold sm:inline">เข้าสู่ระบบ</span>
           </Link>
         </div>
