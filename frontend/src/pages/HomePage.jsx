@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   MdOutlineAssignmentTurnedIn,
@@ -8,11 +9,11 @@ import {
 } from 'react-icons/md'
 import CategoryIcon from '../components/CategoryIcon'
 import ProductCard from '../components/ProductCard'
-import heroImage from '../assets/primepc-hero.png'
-import cpuWideImage from '../assets/promo-cpu-wide.png'
-import deliveryImage from '../assets/promo-delivery.png'
-import gamingSetImage from '../assets/promo-gaming-set.png'
-import notebookImage from '../assets/promo-notebook.png'
+import heroImage from '../assets/banners/primepc-hero.png'
+import cpuWideImage from '../assets/banners/promo-cpu-wide.png'
+import deliveryImage from '../assets/banners/promo-delivery.png'
+import gamingSetImage from '../assets/banners/promo-gaming-set.png'
+import notebookImage from '../assets/banners/promo-notebook.png'
 import { categories } from '../data/categories'
 import { brands } from '../data/brands'
 import { products } from '../data/products'
@@ -63,6 +64,15 @@ const serviceHighlights = [
 ]
 
 function HomePage() {
+  const [selectedFeaturedCategory, setSelectedFeaturedCategory] = useState('cpu')
+  const homeBrandNames = new Set(brands.map((brand) => brand.id.toUpperCase()))
+  const featuredProducts = products.filter(
+    (product) =>
+      product.category === selectedFeaturedCategory &&
+      homeBrandNames.has(product.brand.toUpperCase()),
+  )
+  const featuredProductsUrl = `/products?category=${selectedFeaturedCategory}`
+
   return (
     <div>
       <section className="relative min-h-[360px] overflow-hidden rounded-2xl bg-blue-950 shadow-xl sm:min-h-[430px]">
@@ -102,32 +112,30 @@ function HomePage() {
 
       <section className="mt-5 grid gap-5 md:grid-cols-3" aria-label="โปรโมชัน PrimePC">
         {promotions.map((promotion) => (
-          <Link
+          <article
             key={promotion.title}
-            to="/products"
-            className="group relative min-h-[210px] overflow-hidden rounded-xl bg-blue-950 shadow-md"
+            className="relative min-h-[210px] overflow-hidden rounded-xl bg-blue-950 shadow-md"
           >
             <img
               src={promotion.image}
               alt={promotion.alt}
-              className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              className="absolute inset-0 h-full w-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-blue-950/95 via-blue-950/65 to-transparent" />
             <div className="relative z-10 flex h-full max-w-[65%] flex-col justify-center p-6 text-white">
               <p className="text-xl font-black leading-tight lg:text-2xl">{promotion.title}</p>
               <p className="mt-2 text-xs leading-5 text-blue-100 lg:text-sm">{promotion.detail}</p>
             </div>
-          </Link>
+          </article>
         ))}
       </section>
 
       <section className="mt-10" aria-label="แบรนด์สินค้า">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
           {brands.map((brand) => (
-            <Link
+            <div
               key={brand.id}
-              to={`/products?brand=${brand.id}`}
-              className="grid min-h-12 place-items-center border border-slate-300 bg-white px-3 py-2 text-center transition hover:border-sky-400 hover:shadow-sm"
+              className="grid min-h-12 place-items-center border border-slate-300 bg-white px-3 py-2 text-center"
             >
               <span
                 className="text-base font-black tracking-tight sm:text-lg"
@@ -135,7 +143,7 @@ function HomePage() {
               >
                 {brand.name}
               </span>
-            </Link>
+            </div>
           ))}
         </div>
       </section>
@@ -177,7 +185,7 @@ function HomePage() {
             <MdOutlineRecommend className="h-7 w-7 text-sky-500" aria-hidden="true" />
             แนะนำสินค้า
           </h2>
-          <Link to="/products" className="text-sm font-bold text-blue-700 hover:text-sky-500">
+          <Link to={featuredProductsUrl} className="text-sm font-bold text-blue-700 hover:text-sky-500">
             ดูทั้งหมด <span aria-hidden="true">▶</span>
           </Link>
         </div>
@@ -185,11 +193,12 @@ function HomePage() {
         <div className="grid items-start gap-6 lg:grid-cols-[230px_1fr]">
           <aside className="space-y-2 border border-slate-200 bg-white p-3 shadow-sm" aria-label="เลือกหมวดหมู่สินค้าแนะนำ">
             {sidebarCategories.map((category) => (
-              <Link
+              <button
                 key={category.id}
-                to={`/products?category=${category.id}`}
-                className={`flex items-center gap-3 px-4 py-3 text-sm font-semibold transition ${
-                  category.id === 'motherboard'
+                type="button"
+                onClick={() => setSelectedFeaturedCategory(category.id)}
+                className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold transition ${
+                  selectedFeaturedCategory === category.id
                     ? 'bg-blue-50 text-blue-700 shadow-sm'
                     : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700'
                 }`}
@@ -198,12 +207,12 @@ function HomePage() {
                   <CategoryIcon name={category.icon} className="h-5 w-5" />
                 </span>
                 {category.name}
-              </Link>
+              </button>
             ))}
           </aside>
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            {products.map((product) => (
+            {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>

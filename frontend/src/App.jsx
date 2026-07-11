@@ -1,5 +1,5 @@
 
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import MainLayout from './components/MainLayout'
 import CartPage from './pages/CartPage'
 import CustomerProfilePage from './pages/CustomerProfilePage'
@@ -9,12 +9,17 @@ import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListPage from './pages/ProductListPage'
 import RegisterPage from './pages/RegisterPage'
 
+function ProductListRoute() {
+  const location = useLocation()
+  return <ProductListPage key={location.search} />
+}
+
 function App() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
-        <Route path="/products" element={<ProductListPage />} />
+        <Route path="/products" element={<ProductListRoute />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/login" element={<LoginPage />} />

@@ -3,7 +3,7 @@ export const categories = [
   { id: 'motherboard', name: 'เมนบอร์ด', icon: 'motherboard' },
   { id: 'gpu', name: 'การ์ดจอ', icon: 'gpu' },
   { id: 'ram', name: 'แรม', icon: 'ram' },
-  { id: 'storage', name: 'ฮาร์ดไดรฟ์', icon: 'storage' },
+  { id: 'storage', name: 'ฮาร์ดไดรฟ์ และ เอสเอสดี', icon: 'storage' },
   { id: 'psu', name: 'พาวเวอร์ซัพพลาย', icon: 'psu' },
   { id: 'cooling', name: 'ชุดระบายความร้อน', icon: 'cooling' },
   { id: 'notebook', name: 'โน้ตบุ๊ก', icon: 'notebook' },

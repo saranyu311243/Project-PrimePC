@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 function Footer() {
   return (
     <footer className="mt-8 bg-slate-950 text-slate-300">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
+      <div className="mx-auto grid max-w-[1440px] gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
         <div>
           <p className="text-2xl font-black tracking-tight text-white">
             PRIME<span className="text-sky-400">PC</span>
