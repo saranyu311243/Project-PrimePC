@@ -43,9 +43,25 @@ const register = async (req, res) => {
       }
     });
 
+    // ตรวจสอบ JWT_SECRET
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error'
+      });
+    }
+
+    // สร้าง JWT token
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
+      token,
       data: user
     });
   } catch (error) {
@@ -84,6 +100,15 @@ const login = async (req, res) => {
       });
     }
 
+    // ตรวจสอบว่า JWT_SECRET ถูกตั้งค่าหรือไม่
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET is not configured in environment variables');
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error'
+      });
+    }
+
     // สร้าง JWT token
     const token = jwt.sign(
       {
@@ -91,7 +116,7 @@ const login = async (req, res) => {
         email: user.email,
         role: user.role
       },
-      process.env.JWT_SECRET || 'primepc-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 

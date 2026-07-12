@@ -6,6 +6,17 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
 const { apiLimiter } = require('./middlewares/rateLimiter');
 
+// Validate critical environment variables
+if (!process.env.JWT_SECRET) {
+  console.error('CRITICAL: JWT_SECRET is not set in environment variables');
+  process.exit(1);
+}
+
+if (!process.env.DATABASE_URL) {
+  console.error('CRITICAL: DATABASE_URL is not set in environment variables');
+  process.exit(1);
+}
+
 const app = express();
 
 // Security Middleware
@@ -95,11 +106,19 @@ app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
+  console.error({
+    message: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    timestamp: new Date().toISOString()
+  });
+
+  res.status(err.status || 500).json({
     success: false,
-    message: 'Something went wrong!',
-    error: err.message
+    message: process.env.NODE_ENV === 'production' ? 'Something went wrong!' : err.message,
+    ...(process.env.NODE_ENV !== 'production' && { error: err.message })
   });
 });
 

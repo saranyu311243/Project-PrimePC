@@ -30,19 +30,42 @@ const getCart = async (req, res) => {
       });
     }
 
-    // คำนวณยอดรวม
-    const totalAmount = cart.cartItems.reduce((sum, item) => {
-      return sum + (item.product.price * item.quantity);
-    }, 0);
+    // คำนวณยอดรวมและตรวจสอบ availability
+    let totalAmount = 0;
+    const items = [];
+
+    for (const item of cart.cartItems) {
+      const product = item.product;
+
+      // เพิ่มข้อมูลความพร้อมของสินค้า
+      const itemData = {
+        ...item,
+        product: {
+          ...product,
+          stockAvailable: product.stock >= item.quantity,
+          isCurrentlyAvailable: product.isAvailable && product.stock >= item.quantity
+        }
+      };
+
+      items.push(itemData);
+
+      // คำนวณยอดรวมเฉพาะสินค้าที่พร้อมขาย
+      if (product.isAvailable && product.stock >= item.quantity) {
+        totalAmount += product.price * item.quantity;
+      }
+    }
 
     res.json({
       success: true,
       data: {
         ...cart,
-        totalAmount
+        cartItems: items,
+        totalAmount,
+        hasUnavailableItems: items.some(i => !i.product.isCurrentlyAvailable)
       }
     });
   } catch (error) {
+    console.error('Get cart error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get cart',
@@ -56,6 +79,29 @@ const addToCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const { productId, quantity = 1 } = req.body;
+
+    // Validation
+    if (!productId) {
+      return res.status(400).json({
+        success: false,
+        message: 'productId is required'
+      });
+    }
+
+    const parsedQuantity = parseInt(quantity);
+    if (isNaN(parsedQuantity) || parsedQuantity < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity must be at least 1'
+      });
+    }
+
+    if (parsedQuantity > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity cannot exceed 100 per item'
+      });
+    }
 
     // ตรวจสอบว่าสินค้ามีอยู่จริง
     const product = await prisma.product.findUnique({
@@ -72,14 +118,14 @@ const addToCart = async (req, res) => {
     if (!product.isAvailable) {
       return res.status(400).json({
         success: false,
-        message: 'Product is not available'
+        message: 'Product is not available for purchase'
       });
     }
 
-    if (product.stock < quantity) {
+    if (product.stock < parsedQuantity) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient stock'
+        message: `Insufficient stock. Available: ${product.stock}, Requested: ${parsedQuantity}`
       });
     }
 
@@ -108,13 +154,30 @@ const addToCart = async (req, res) => {
     let cartItem;
 
     if (existingItem) {
+      const newQuantity = existingItem.quantity + parsedQuantity;
+
+      // ตรวจสอบ stock อีกครั้งหลังบวกจำนวน
+      if (product.stock < newQuantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot add ${parsedQuantity} more. You already have ${existingItem.quantity} in cart. Available: ${product.stock}`
+        });
+      }
+
+      if (newQuantity > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Total quantity in cart cannot exceed 100 per item'
+        });
+      }
+
       // เพิ่มจำนวนถ้ามีอยู่แล้ว
       cartItem = await prisma.cartItem.update({
         where: {
           id: existingItem.id
         },
         data: {
-          quantity: existingItem.quantity + parseInt(quantity)
+          quantity: newQuantity
         },
         include: {
           product: true
@@ -126,7 +189,7 @@ const addToCart = async (req, res) => {
         data: {
           cartId: cart.id,
           productId: parseInt(productId),
-          quantity: parseInt(quantity)
+          quantity: parsedQuantity
         },
         include: {
           product: true
@@ -136,10 +199,11 @@ const addToCart = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Item added to cart',
+      message: 'Item added to cart successfully',
       data: cartItem
     });
   } catch (error) {
+    console.error('Add to cart error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to add item to cart',
@@ -155,10 +219,19 @@ const updateCartItem = async (req, res) => {
     const { itemId } = req.params;
     const { quantity } = req.body;
 
-    if (quantity < 1) {
+    // Validation
+    const parsedQuantity = parseInt(quantity);
+    if (isNaN(parsedQuantity) || parsedQuantity < 1) {
       return res.status(400).json({
         success: false,
         message: 'Quantity must be at least 1'
+      });
+    }
+
+    if (parsedQuantity > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Quantity cannot exceed 100'
       });
     }
 
@@ -182,17 +255,25 @@ const updateCartItem = async (req, res) => {
       });
     }
 
-    // ตรวจสอบ stock
-    if (cartItem.product.stock < quantity) {
+    // ตรวจสอบว่าสินค้ายังพร้อมขาย
+    if (!cartItem.product.isAvailable) {
       return res.status(400).json({
         success: false,
-        message: 'Insufficient stock'
+        message: 'Product is no longer available'
+      });
+    }
+
+    // ตรวจสอบ stock
+    if (cartItem.product.stock < parsedQuantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient stock. Available: ${cartItem.product.stock}, Requested: ${parsedQuantity}`
       });
     }
 
     const updatedItem = await prisma.cartItem.update({
       where: { id: parseInt(itemId) },
-      data: { quantity: parseInt(quantity) },
+      data: { quantity: parsedQuantity },
       include: {
         product: true
       }
@@ -200,10 +281,11 @@ const updateCartItem = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Cart item updated',
+      message: 'Cart item updated successfully',
       data: updatedItem
     });
   } catch (error) {
+    console.error('Update cart item error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update cart item',
@@ -241,9 +323,10 @@ const removeFromCart = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Item removed from cart'
+      message: 'Item removed from cart successfully'
     });
   } catch (error) {
+    console.error('Remove from cart error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to remove item from cart',
@@ -274,9 +357,10 @@ const clearCart = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Cart cleared'
+      message: 'Cart cleared successfully'
     });
   } catch (error) {
+    console.error('Clear cart error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to clear cart',

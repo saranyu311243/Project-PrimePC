@@ -3,6 +3,7 @@ const router = express.Router();
 const shipmentController = require('../controllers/shipment.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const checkRole = require('../middlewares/checkRole');
+const { sanitizeInput } = require('../middlewares/validateInput');
 
 /**
  * @swagger
@@ -34,7 +35,7 @@ const checkRole = require('../middlewares/checkRole');
  *       201:
  *         description: Shipment created
  */
-router.post('/', verifyToken, checkRole('STAFF', 'ADMIN'), shipmentController.createShipment);
+router.post('/', verifyToken, checkRole('STAFF', 'ADMIN'), sanitizeInput, shipmentController.createShipment);
 
 /**
  * @swagger
@@ -67,7 +68,21 @@ router.put('/:id/status', verifyToken, checkRole('STAFF', 'ADMIN'), shipmentCont
 
 /**
  * @swagger
- * /api/shipments/{orderId}:
+ * /api/shipments:
+ *   get:
+ *     tags: [Shipments]
+ *     summary: Get all shipments (Staff/Admin)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of shipments
+ */
+router.get('/', verifyToken, checkRole('STAFF', 'ADMIN'), shipmentController.getAllShipments);
+
+/**
+ * @swagger
+ * /api/shipments/order/{orderId}:
  *   get:
  *     tags: [Shipments]
  *     summary: Get shipment by order ID
@@ -83,6 +98,6 @@ router.put('/:id/status', verifyToken, checkRole('STAFF', 'ADMIN'), shipmentCont
  *       200:
  *         description: Shipment details
  */
-router.get('/:orderId', verifyToken, shipmentController.getShipmentByOrderId);
+router.get('/order/:orderId', verifyToken, shipmentController.getShipmentByOrderId);
 
 module.exports = router;

@@ -131,13 +131,40 @@ const updateProduct = async (req, res) => {
     const { id } = req.params;
     const { name, description, price, stock, imageUrl, category, brand, isAvailable } = req.body;
 
+    // Validation
+    if (price !== undefined && (isNaN(price) || parseFloat(price) < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price must be a valid positive number'
+      });
+    }
+
+    if (stock !== undefined && (isNaN(stock) || parseInt(stock) < 0)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Stock must be a valid non-negative number'
+      });
+    }
+
+    // Check if product exists
+    const existingProduct = await prisma.product.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!existingProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
     const product = await prisma.product.update({
       where: { id: parseInt(id) },
       data: {
         name,
         description,
-        price: price ? parseFloat(price) : undefined,
-        stock: stock ? parseInt(stock) : undefined,
+        price: price !== undefined ? parseFloat(price) : undefined,
+        stock: stock !== undefined ? parseInt(stock) : undefined,
         imageUrl,
         category,
         brand,

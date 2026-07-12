@@ -1,53 +1,265 @@
 const prisma = require('../lib/prisma');
+const { v4: uuidv4 } = require('uuid');
+
+// Valid payment methods
+const validPaymentMethods = ['credit_card', 'bank_transfer', 'paypal', 'qr_code'];
+const validPaymentStatuses = ['PENDING', 'SUCCESS', 'FAILED'];
 
 const getPaymentOptions = (req, res) => {
-  res.json({ success: true, data: ['credit_card', 'bank_transfer', 'paypal'] });
+  res.json({
+    success: true,
+    data: validPaymentMethods
+  });
 };
 
+// Create payment with proper authorization and validation
 const createPayment = async (req, res) => {
   try {
     const userId = req.user?.id;
     const { orderId, amount, method, transactionId } = req.body;
-    if (!orderId || !amount) return res.status(400).json({ success: false, message: 'orderId and amount required' });
 
-    // ensure order exists
-    const order = await prisma.order.findUnique({ where: { id: parseInt(orderId) } });
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    // Validation
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
 
-    const payment = await prisma.payment.create({
-      data: {
-        orderId: order.id,
-        amount: parseFloat(amount),
-        method,
-        transactionId,
-        status: 'SUCCESS'
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderId is required'
+      });
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid amount is required'
+      });
+    }
+
+    if (!method || !validPaymentMethods.includes(method)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid payment method. Must be one of: ${validPaymentMethods.join(', ')}`
+      });
+    }
+
+    // Get order with full details
+    const order = await prisma.order.findUnique({
+      where: { id: parseInt(orderId) },
+      include: {
+        payment: true
       }
     });
 
-    // update order status to PAID
-    await prisma.order.update({ where: { id: order.id }, data: { status: 'PAID' } });
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
 
-    res.status(201).json({ success: true, data: payment });
+    // Authorization: Check if this user owns the order
+    if (order.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only create payment for your own orders'
+      });
+    }
+
+    // Check if payment already exists
+    if (order.payment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment already exists for this order'
+      });
+    }
+
+    // Validate amount matches order total
+    const orderAmount = parseFloat(order.totalAmount);
+    const paymentAmount = parseFloat(amount);
+
+    if (Math.abs(orderAmount - paymentAmount) > 0.01) { // tolerance for floating point
+      return res.status(400).json({
+        success: false,
+        message: `Payment amount (${paymentAmount}) does not match order total (${orderAmount})`
+      });
+    }
+
+    // Check order status
+    if (order.status === 'CANCELLED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot create payment for cancelled order'
+      });
+    }
+
+    if (['PAID', 'PROCESSING', 'SHIPPING', 'DELIVERED'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order is already paid or in progress'
+      });
+    }
+
+    // Create payment (status = PENDING by default, not SUCCESS)
+    // Note: ในระบบจริงต้องเชื่อมต่อ payment gateway
+    // แต่สำหรับส่งอาจารย์ เราจะตั้งเป็น PENDING แล้วให้ confirm ภายหลัง
+    const payment = await prisma.payment.create({
+      data: {
+        orderId: order.id,
+        amount: paymentAmount,
+        method,
+        transactionId: transactionId || `TXN-${uuidv4()}`,
+        status: 'PENDING'
+      }
+    });
+
+    // Update order status to CONFIRMED (waiting for payment confirmation)
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { status: 'CONFIRMED' }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Payment created successfully. Please confirm payment.',
+      data: payment
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to create payment', error: error.message });
+    console.error('Create payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create payment',
+      error: error.message
+    });
   }
 };
 
+// Get payment by order ID
+const getPaymentByOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const payment = await prisma.payment.findUnique({
+      where: { orderId: parseInt(orderId) },
+      include: {
+        order: {
+          select: {
+            id: true,
+            userId: true,
+            totalAmount: true,
+            status: true
+          }
+        }
+      }
+    });
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found for this order'
+      });
+    }
+
+    // Authorization: Check if user owns this order
+    if (req.user.role === 'CUSTOMER' && payment.order.userId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: payment
+    });
+  } catch (error) {
+    console.error('Get payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get payment',
+      error: error.message
+    });
+  }
+};
+
+// Confirm payment (สำหรับ admin/staff หรือ webhook จาก payment gateway)
 const confirmPayment = async (req, res) => {
   try {
     const { id } = req.params;
     const { status = 'SUCCESS' } = req.body;
 
-    const payment = await prisma.payment.update({ where: { id: parseInt(id) }, data: { status } });
-
-    if (status === 'SUCCESS') {
-      await prisma.order.update({ where: { id: payment.orderId }, data: { status: 'PAID' } });
+    // Validate status
+    if (!validPaymentStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validPaymentStatuses.join(', ')}`
+      });
     }
 
-    res.json({ success: true, data: payment });
+    // Get payment with order
+    const currentPayment = await prisma.payment.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        order: true
+      }
+    });
+
+    if (!currentPayment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment not found'
+      });
+    }
+
+    // Only PENDING payments can be confirmed
+    if (currentPayment.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot confirm payment with status: ${currentPayment.status}`
+      });
+    }
+
+    // Update payment status
+    const payment = await prisma.payment.update({
+      where: { id: parseInt(id) },
+      data: { status }
+    });
+
+    // Update order status based on payment status
+    if (status === 'SUCCESS') {
+      await prisma.order.update({
+        where: { id: payment.orderId },
+        data: { status: 'PROCESSING' }
+      });
+    } else if (status === 'FAILED') {
+      await prisma.order.update({
+        where: { id: payment.orderId },
+        data: { status: 'PENDING' }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Payment ${status.toLowerCase()}`,
+      data: payment
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to confirm payment', error: error.message });
+    console.error('Confirm payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to confirm payment',
+      error: error.message
+    });
   }
 };
 
-module.exports = { getPaymentOptions, createPayment, confirmPayment };
+module.exports = {
+  getPaymentOptions,
+  createPayment,
+  getPaymentByOrder,
+  confirmPayment
+};

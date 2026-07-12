@@ -3,6 +3,8 @@ const router = express.Router();
 const orderController = require('../controllers/order.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const checkRole = require('../middlewares/checkRole');
+const { criticalLimiter } = require('../middlewares/criticalRateLimiter');
+const { sanitizeInput } = require('../middlewares/validateInput');
 
 /**
  * @swagger
@@ -38,7 +40,7 @@ const checkRole = require('../middlewares/checkRole');
  *       201:
  *         description: Order created
  */
-router.post('/', verifyToken, orderController.createOrder);
+router.post('/', criticalLimiter, verifyToken, sanitizeInput, orderController.createOrder);
 
 /**
  * @swagger
@@ -131,5 +133,25 @@ router.put('/:id/status', verifyToken, checkRole('STAFF', 'ADMIN'), orderControl
  *         description: Customer orders
  */
 router.get('/customer/:id/orders', verifyToken, orderController.getOrdersByCustomer);
+
+/**
+ * @swagger
+ * /api/orders/{id}/cancel:
+ *   put:
+ *     summary: Cancel an order (Customer or Staff/Admin)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Order cancelled successfully
+ */
+router.put('/:id/cancel', verifyToken, orderController.cancelOrder);
 
 module.exports = router;

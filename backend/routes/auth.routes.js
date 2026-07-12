@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const { authLimiter } = require('../middlewares/criticalRateLimiter');
 const verifyToken = require('../middlewares/verifyToken');
 const { validateRegister, validateLogin, sanitizeInput } = require('../middlewares/validateInput');
-const { authLimiter } = require('../middlewares/rateLimiter');
 
 /**
  * @swagger
@@ -96,6 +96,6 @@ router.get('/profile', verifyToken, authController.getProfile);
  *       200:
  *         description: Profile updated successfully
  */
-router.put('/profile', verifyToken, authController.updateProfile);
+router.put('/profile', verifyToken, sanitizeInput, authController.updateProfile);
 
 module.exports = router;

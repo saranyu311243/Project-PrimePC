@@ -3,6 +3,8 @@ const router = express.Router();
 const paymentController = require('../controllers/payment.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const checkRole = require('../middlewares/checkRole');
+const { criticalLimiter } = require('../middlewares/criticalRateLimiter');
+const { sanitizeInput } = require('../middlewares/validateInput');
 
 /**
  * @swagger
@@ -50,7 +52,27 @@ router.get('/options', paymentController.getPaymentOptions);
  *       201:
  *         description: Payment created
  */
-router.post('/', verifyToken, paymentController.createPayment);
+router.post('/', criticalLimiter, verifyToken, sanitizeInput, paymentController.createPayment);
+
+/**
+ * @swagger
+ * /api/payments/order/{orderId}:
+ *   get:
+ *     tags: [Payments]
+ *     summary: Get payment by order ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Payment details
+ */
+router.get('/order/:orderId', verifyToken, paymentController.getPaymentByOrder);
 
 /**
  * @swagger
