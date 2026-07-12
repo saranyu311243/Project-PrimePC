@@ -3,13 +3,14 @@ import { MdKeyboardArrowRight, MdOutlineSearch } from 'react-icons/md'
 import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { categories } from '../data/categories'
-import { categoryFilterDefinitions, categoryHeaders, homeBrandOptions } from '../data/productListConfig'
+import { categoryFilterDefinitions, categoryHeaders, categorySearchAliases, homeBrandOptions } from '../data/productListConfig'
 import { products } from '../data/products'
 
 function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedCategory = searchParams.get('category') ?? 'cpu'
-  const [searchText, setSearchText] = useState(searchParams.get('search') ?? '')
+  const navbarSearch = searchParams.get('search') ?? ''
+  const [searchText, setSearchText] = useState('')
   const [brands, setBrands] = useState([])
   const [availability, setAvailability] = useState([])
   const [filters, setFilters] = useState({})
@@ -24,9 +25,10 @@ function ProductListPage() {
   const definitions = useMemo(() => categoryFilterDefinitions[selectedCategory] ?? [], [selectedCategory])
 
   const filteredProducts = useMemo(() => {
-    const tokens = searchText.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    const activeSearch = searchText.trim() || navbarSearch
+    const tokens = activeSearch.toLowerCase().split(/\s+/).filter(Boolean)
     return eligibleProducts.filter((product) => {
-      const haystack = [product.name, product.brand, product.description, product.categoryName, product.icon].join(' ').toLowerCase()
+      const haystack = [product.name, product.brand, product.description, product.categoryName, product.icon, ...(categorySearchAliases[product.category] ?? [])].join(' ').toLowerCase()
       const stock = product.id % 5 === 0 ? 'out-of-stock' : 'in-stock'
       const matchesCustom = definitions.every((definition) => {
         const selected = filters[definition.field] ?? []
@@ -39,7 +41,7 @@ function ProductListPage() {
         (!availability.length || availability.includes(stock)) && matchesCustom &&
         product.price >= price.min && product.price <= currentMax
     }).sort((a, b) => sortBy === 'price-desc' ? b.price - a.price : a.price - b.price)
-  }, [availability, brands, currentMax, definitions, eligibleProducts, filters, price.min, searchText, sortBy])
+  }, [availability, brands, currentMax, definitions, eligibleProducts, filters, navbarSearch, price.min, searchText, sortBy])
 
   const toggle = (value, list, setter) => setter(list.includes(value) ? list.filter((item) => item !== value) : [...list, value])
   const toggleFilter = (field, value) => setFilters((current) => {
@@ -80,7 +82,7 @@ function ProductListPage() {
         <details open className="group mt-5 border-t border-slate-100 pt-4"><summary className="flex cursor-pointer list-none justify-between text-sm font-semibold text-slate-500">Brand<MdKeyboardArrowRight className="h-5 w-5 transition group-open:rotate-90" /></summary><div className="mt-4 space-y-3">{brandOptions.map((brand) => <label key={brand} className="flex gap-3 text-sm"><input type="checkbox" checked={brands.includes(brand)} onChange={() => toggle(brand, brands, setBrands)} className="h-5 w-5 accent-blue-700" />{brand}</label>)}</div></details>
         {definitions.map((definition) => <details key={definition.field} className="group mt-4 border-t border-slate-100 pt-4"><summary className="flex cursor-pointer list-none justify-between text-sm font-semibold text-slate-500">{definition.label}<MdKeyboardArrowRight className="h-5 w-5 transition group-open:rotate-90" /></summary><div className="mt-4 space-y-3">{definition.options.map((option) => <label key={option} className="flex gap-3 text-sm"><input type="checkbox" checked={(filters[definition.field] ?? []).includes(option)} onChange={() => toggleFilter(definition.field, option)} className="h-5 w-5 accent-blue-700" />{definition.field === 'continuousPower' ? `${option} Watt` : option}</label>)}</div></details>)}
       </aside>
-      <section aria-live="polite">{filteredProducts.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} variant="listing" />)}</div> : <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><div><p className="text-xl font-extrabold">ไม่พบสินค้าที่ค้นหา</p><button onClick={clearFilters} className="mt-5 bg-blue-700 px-5 py-2.5 text-sm font-bold text-white">ล้างตัวกรอง</button></div></div>}</section>
+      <section aria-live="polite">{filteredProducts.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} variant="listing" />)}</div> : <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><p className="text-xl font-extrabold">ไม่พบสินค้าที่ค้นหา</p></div>}</section>
     </div>
   </div>
 }

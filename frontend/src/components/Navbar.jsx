@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart } from 'react-icons/md'
 import { categories } from '../data/categories'
+import { homeBrandOptions } from '../data/productListConfig'
 import { products } from '../data/products'
 
 const categorySearchAliases = {
@@ -36,7 +37,8 @@ function Navbar() {
     }
 
     const searchTokens = normalizedSearch.split(/\s+/).filter(Boolean)
-    const matchingProduct = products.find((product) => {
+    const matchingProduct = normalizedSearch ? products.find((product) => {
+      if (!homeBrandOptions.includes(product.brand.toUpperCase())) return false
       const haystack = [
         product.name,
         product.brand,
@@ -47,11 +49,32 @@ function Navbar() {
       ].join(' ').toLowerCase()
 
       return searchTokens.every((token) => haystack.includes(token))
-    })
-    const categoryFromAlias = Object.entries(categorySearchAliases).find(([, aliases]) =>
+    }) : null
+    const categoryFromAlias = normalizedSearch ? Object.entries(categorySearchAliases).find(([, aliases]) =>
       aliases.some((alias) => normalizedSearch.includes(alias.toLowerCase())),
-    )?.[0]
-    const targetCategory = matchingProduct?.category || categoryFromAlias || (selectedCategory === 'home' ? 'cpu' : selectedCategory)
+    )?.[0] : null
+    const targetCategory = selectedCategory === 'home'
+      ? matchingProduct?.category || categoryFromAlias || 'cpu'
+      : selectedCategory
+    const hasMatchingProduct = !normalizedSearch || products.some((product) => {
+      if (product.category !== targetCategory) return false
+      if (!homeBrandOptions.includes(product.brand.toUpperCase())) return false
+      const haystack = [
+        product.name,
+        product.brand,
+        product.description,
+        product.categoryName,
+        product.icon,
+        ...(categorySearchAliases[product.category] ?? []),
+      ].join(' ').toLowerCase()
+      return searchTokens.every((token) => haystack.includes(token))
+    })
+
+    if (!hasMatchingProduct) {
+      navigate(`/search-not-found?search=${encodeURIComponent(normalizedSearch)}`)
+      return
+    }
+
     const params = new URLSearchParams({ category: targetCategory })
 
     if (normalizedSearch) params.set('search', normalizedSearch)

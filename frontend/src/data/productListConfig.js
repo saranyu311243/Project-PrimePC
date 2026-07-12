@@ -34,6 +34,23 @@ export const categoryHeaders = {
 
 export const homeBrandOptions = ['ASUS', 'MSI', 'INTEL', 'AMD', 'LENOVO', 'GIGABYTE', 'CORSAIR', 'LOGITECH', 'KINGSTON', 'HYPERX', 'RAZER', 'NVIDIA', 'ACER', 'STEELSERIES']
 
+export const categorySearchAliases = {
+  cpu: ['cpu', 'processor', 'ซีพียู', 'หน่วยประมวลผล'],
+  motherboard: ['mainboard', 'motherboard', 'mb', 'เมนบอร์ด'],
+  gpu: ['gpu', 'vga', 'graphic card', 'graphics card', 'การ์ดจอ'],
+  ram: ['ram', 'memory', 'แรม'],
+  storage: ['storage', 'ssd', 'hdd', 'harddisk', 'hard drive', 'ฮาร์ดดิสก์', 'เอสเอสดี'],
+  psu: ['psu', 'power supply', 'พาวเวอร์ซัพพลาย'],
+  cooling: ['cooling', 'cooler', 'fan', 'ชุดระบายความร้อน', 'พัดลม'],
+  notebook: ['notebook', 'laptop', 'โน้ตบุ๊ก', 'แล็ปท็อป'],
+  monitor: ['monitor', 'display', 'จอคอม', 'จอมอนิเตอร์'],
+  keyboard: ['keyboard', 'คีย์บอร์ด'],
+  mouse: ['mouse', 'เมาส์'],
+  accessory: ['accessory', 'accessories', 'อุปกรณ์เสริม', 'ไมค์', 'ไมโครโฟน', 'webcam'],
+  case: ['case', 'computer case', 'เคส'],
+  headset: ['headset', 'headphone', 'หูฟัง'],
+}
+
 const values = (label, field, options, match = 'exact') => ({ label, field, options, match })
 export const categoryFilterDefinitions = {
   cpu: [values('Processor Number', 'name', ['CORE i3', 'CORE i5', 'CORE i7', 'CORE i9', 'Ryzen 5', 'Ryzen 7', 'Ryzen 9', 'ULTRA 5', 'ULTRA 7', 'ULTRA 9'], 'includes')],

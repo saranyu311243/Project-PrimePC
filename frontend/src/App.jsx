@@ -1,4 +1,5 @@
 
+import { useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import MainLayout from './components/MainLayout'
 import CartPage from './pages/CartPage'
@@ -8,9 +9,15 @@ import LoginPage from './pages/LoginPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListPage from './pages/ProductListPage'
 import RegisterPage from './pages/RegisterPage'
+import SearchNotFoundPage from './pages/SearchNotFoundPage'
 
 function ProductListRoute() {
   const location = useLocation()
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.search])
+
   return <ProductListPage key={location.search} />
 }
 
@@ -21,6 +28,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/products" element={<ProductListRoute />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
+        <Route path="/search-not-found" element={<SearchNotFoundPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
