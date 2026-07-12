@@ -84,6 +84,32 @@
   .price-range:hover {
     background: #bfdbfe;
   }
+
+  .product-detail-layout {
+    display: grid;
+    max-width: 1140px;
+    align-items: start;
+    gap: 28px;
+  }
+
+  .product-specs {
+    width: 680px;
+    max-width: 100%;
+  }
+
+  .product-spec-table tr:not(:last-child) {
+    border-bottom: 1px solid #cbd5e1;
+  }
+
+  .product-spec-table th {
+    border-right: 1px solid #e2e8f0;
+  }
+
+  @media (min-width: 768px) {
+    .product-detail-layout {
+      grid-template-columns: minmax(0, 680px) minmax(0, 432px);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

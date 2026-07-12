@@ -1,4 +1,4 @@
-export const products = [
+const productCatalog = [
   { id: 1, name: 'AMD Ryzen 7 9700X', category: 'cpu', categoryName: 'ซีพียู', brand: 'AMD', price: 12900, icon: 'CPU', description: 'ซีพียู 8 คอร์ 16 เธรด สำหรับเกมและงานประสิทธิภาพสูง รองรับซ็อกเก็ต AM5' },
   { id: 2, name: 'Intel Core Ultra 7 265K', category: 'cpu', categoryName: 'ซีพียู', brand: 'Intel', price: 13900, icon: 'CPU', description: 'หน่วยประมวลผลรุ่นใหม่ ให้ประสิทธิภาพรวดเร็วสำหรับการทำงานหลายโปรแกรม' },
   { id: 3, name: 'GeForce RTX 5070 12GB', category: 'gpu', categoryName: 'การ์ดจอ', brand: 'ASUS', gpuSeries: 'NVIDIA GeForce RTX 50 Series', gpuModel: 'GeForce RTX 5070', price: 24900, icon: 'GPU', description: 'การ์ดจอสำหรับเล่นเกมความละเอียดสูง พร้อมหน่วยความจำกราฟิก 12GB' },
@@ -65,3 +65,12 @@ export const products = [
   { id: 64, name: 'GIGABYTE AORUS ATC800 CPU AIR COOLER', category: 'cooling', categoryName: 'ชุดระบายความร้อน', brand: 'GIGABYTE', price: 2490, icon: 'FAN', description: 'ฮีตซิงก์ลมทรงทาวเวอร์คู่พร้อมพัดลม RGB ระบายความร้อนได้ดี เหมาะสำหรับเกมมิ่งพีซี' },
   { id: 65, name: 'CORSAIR AF120 RGB ELITE 120mm', category: 'cooling', categoryName: 'ชุดระบายความร้อน', brand: 'CORSAIR', price: 790, icon: 'FAN', description: 'พัดลมเคสขนาด 120 มม. พร้อมไฟ RGB ให้แรงลมดีและช่วยจัดการอุณหภูมิภายในเคส' },
 ]
+
+// Mock stock status: replace this value with the quantity returned by Supabase later.
+const outOfStockProductIds = new Set([5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65])
+
+export const products = productCatalog.map((product) => ({
+  ...product,
+  inStock: !outOfStockProductIds.has(product.id),
+  stockQuantity: outOfStockProductIds.has(product.id) ? 0 : 10,
+}))

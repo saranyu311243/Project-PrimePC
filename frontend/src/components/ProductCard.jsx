@@ -5,6 +5,9 @@ function ProductCard({ product, variant = 'default' }) {
   if (variant === 'listing') {
     return (
       <article className="group relative flex min-h-[430px] flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-100 hover:shadow-lg">
+        <span className={`absolute left-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>
+          {product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}
+        </span>
         <button
           type="button"
           className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-100 bg-white text-slate-400 shadow-sm transition hover:text-red-500"
@@ -43,6 +46,9 @@ function ProductCard({ product, variant = 'default' }) {
     <article className="group flex min-h-[430px] flex-col bg-white transition hover:shadow-lg">
       <Link to={`/products/${product.id}`} className="block">
         <div className="relative grid aspect-square place-items-center overflow-hidden bg-white p-4">
+          <span className={`absolute left-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>
+            {product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}
+          </span>
           <div className="absolute h-36 w-36 rounded-full bg-sky-300/30 blur-2xl" />
           <div className="relative grid h-28 w-36 place-items-center border border-blue-200 bg-gradient-to-br from-slate-900 to-blue-900 text-2xl font-black tracking-wider text-sky-300 shadow-xl transition duration-300 group-hover:scale-105">
             {product.icon}

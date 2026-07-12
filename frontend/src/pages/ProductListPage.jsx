@@ -29,7 +29,7 @@ function ProductListPage() {
     const tokens = activeSearch.toLowerCase().split(/\s+/).filter(Boolean)
     return eligibleProducts.filter((product) => {
       const haystack = [product.name, product.brand, product.description, product.categoryName, product.icon, ...(categorySearchAliases[product.category] ?? [])].join(' ').toLowerCase()
-      const stock = product.id % 5 === 0 ? 'out-of-stock' : 'in-stock'
+      const stock = product.inStock ? 'in-stock' : 'out-of-stock'
       const matchesCustom = definitions.every((definition) => {
         const selected = filters[definition.field] ?? []
         if (!selected.length) return true
