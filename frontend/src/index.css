@@ -105,6 +105,25 @@
     border-right: 1px solid #e2e8f0;
   }
 
+  .cart-page-grid {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+
+  .cart-product-row {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+
+  @media (max-width: 560px) {
+    .cart-page-grid,
+    .cart-product-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cart-page-grid > aside {
+      position: static;
+    }
+  }
+
   @media (min-width: 768px) {
     .product-detail-layout {
       grid-template-columns: minmax(0, 680px) minmax(0, 432px);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   MdAdd,
+  MdFavorite,
   MdFavoriteBorder,
   MdOutlineAssignmentTurnedIn,
   MdOutlineLocalShipping,
@@ -9,8 +10,9 @@ import {
   MdOutlineVerifiedUser,
   MdRemove,
 } from 'react-icons/md'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { products } from '../data/products'
+import { useCart } from '../hooks/useCart'
 
 const serviceHighlights = [
   { title: 'ส่งฟรีทั่วไทย', detail: 'เมื่อช้อปครบ 5,000 บาทขึ้นไป', icon: MdOutlineLocalShipping },
@@ -181,6 +183,8 @@ const getProductSpecs = (product) => {
 
 function ProductDetailPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const { addItem, items, removeItem } = useCart()
   const [quantity, setQuantity] = useState(1)
   const product = products.find((item) => item.id === Number(id))
 
@@ -191,6 +195,21 @@ function ProductDetailPage() {
   if (!product) return <div className="grid min-h-[60vh] place-items-center text-center"><div><h1 className="text-3xl font-black">ไม่พบสินค้า</h1><Link to="/" className="mt-5 inline-block text-blue-700">กลับหน้า Home</Link></div></div>
 
   const specs = getProductSpecs(product)
+  const isInCart = items.some((item) => item.id === product.id)
+  const addToCartAndOpen = () => {
+    if (!product.inStock) return
+    addItem(product, quantity)
+    navigate('/cart')
+  }
+  const toggleCartFavorite = () => {
+    if (!product.inStock) return
+    if (isInCart) {
+      removeItem(product.id)
+      return
+    }
+    addItem(product, quantity)
+    navigate('/cart')
+  }
 
   return (
     <div>
@@ -204,12 +223,12 @@ function ProductDetailPage() {
 
         <div className="min-w-0 px-1 py-1">
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>{product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}</span>
-          <div className="mt-4 flex items-start justify-between gap-4"><h1 className="text-xl font-black leading-8 text-slate-900">{product.name}</h1><button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 text-slate-400 hover:text-red-500"><MdFavoriteBorder className="h-5 w-5" /></button></div>
+          <div className="mt-4 flex items-start justify-between gap-4"><h1 className="text-xl font-black leading-8 text-slate-900">{product.name}</h1><button type="button" onClick={toggleCartFavorite} disabled={!product.inStock} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 disabled:cursor-not-allowed disabled:opacity-40 ${isInCart ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}>{isInCart ? <MdFavorite className="h-5 w-5" /> : <MdFavoriteBorder className="h-5 w-5" />}</button></div>
           <p className="mt-3 text-sm text-slate-500">แบรนด์: <strong className="text-slate-700">{product.brand.toUpperCase()}</strong><span className="mx-3">|</span>รหัสสินค้า: SKU-{String(product.id).padStart(8, '0')}</p>
           <div className="mt-5 border-t border-slate-300 pt-5"><p className="text-2xl font-black text-slate-900">฿{product.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</p></div>
 
           <div className="mt-6 flex items-center gap-3"><span className="mr-2 text-sm font-bold">จำนวน</span><button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="grid h-10 w-10 place-items-center rounded border border-blue-700 text-blue-700"><MdRemove /></button><span className="min-w-8 text-center font-bold">{String(quantity).padStart(2, '0')}</span><button type="button" onClick={() => setQuantity((value) => value + 1)} className="grid h-10 w-10 place-items-center rounded border border-blue-700 text-blue-700"><MdAdd /></button></div>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2"><button type="button" disabled={!product.inStock} className="flex items-center justify-center gap-2 rounded-lg border-2 border-blue-700 px-4 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent"><MdOutlineShoppingBag className="h-5 w-5" />เพิ่มในตะกร้า</button><button type="button" disabled={!product.inStock} className="rounded-lg bg-blue-700 px-4 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">{product.inStock ? 'ซื้อเลย' : 'สินค้าหมด'}</button></div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2"><button type="button" onClick={addToCartAndOpen} disabled={!product.inStock} className="flex items-center justify-center gap-2 rounded-lg border-2 border-blue-700 px-4 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:text-slate-400 disabled:hover:bg-transparent"><MdOutlineShoppingBag className="h-5 w-5" />เพิ่มในตะกร้า</button><button type="button" onClick={addToCartAndOpen} disabled={!product.inStock} className="rounded-lg bg-blue-700 px-4 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">{product.inStock ? 'ซื้อเลย' : 'สินค้าหมด'}</button></div>
         </div>
       </section>
 

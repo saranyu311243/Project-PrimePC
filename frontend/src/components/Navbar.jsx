@@ -4,6 +4,7 @@ import { MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart } from 'react-i
 import { categories } from '../data/categories'
 import { homeBrandOptions } from '../data/productListConfig'
 import { products } from '../data/products'
+import { useCart } from '../hooks/useCart'
 
 const categorySearchAliases = {
   cpu: ['cpu', 'processor', 'ซีพียู', 'หน่วยประมวลผล'],
@@ -24,6 +25,7 @@ const categorySearchAliases = {
 
 function Navbar() {
   const navigate = useNavigate()
+  const { itemCount } = useCart()
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('home')
 
@@ -120,7 +122,7 @@ function Navbar() {
           <Link to="/cart" className="relative flex items-center gap-2 text-white hover:text-sky-200">
             <span className="relative">
               <MdOutlineShoppingCart className="h-6 w-6" aria-hidden="true" />
-              <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-sky-400 px-1 text-[10px] font-bold text-blue-950">0</span>
+              <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-sky-400 px-1 text-[10px] font-bold text-blue-950">{itemCount}</span>
             </span>
             <span className="hidden text-xs font-semibold sm:inline">ตะกร้าสินค้า</span>
           </Link>

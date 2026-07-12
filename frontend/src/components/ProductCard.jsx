@@ -1,7 +1,21 @@
-import { Link } from 'react-router-dom'
-import { MdFavoriteBorder } from 'react-icons/md'
+import { Link, useNavigate } from 'react-router-dom'
+import { MdFavorite, MdFavoriteBorder } from 'react-icons/md'
+import { useCart } from '../hooks/useCart'
 
 function ProductCard({ product, variant = 'default' }) {
+  const navigate = useNavigate()
+  const { addItem, items, removeItem } = useCart()
+  const isInCart = items.some((item) => item.id === product.id)
+  const toggleCartFavorite = () => {
+    if (!product.inStock) return
+    if (isInCart) {
+      removeItem(product.id)
+      return
+    }
+    addItem(product)
+    navigate('/cart')
+  }
+
   if (variant === 'listing') {
     return (
       <article className="group relative flex min-h-[430px] flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-100 hover:shadow-lg">
@@ -10,10 +24,12 @@ function ProductCard({ product, variant = 'default' }) {
         </span>
         <button
           type="button"
-          className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-100 bg-white text-slate-400 shadow-sm transition hover:text-red-500"
+          onClick={toggleCartFavorite}
+          disabled={!product.inStock}
+          className={`absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-100 bg-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${isInCart ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}
           aria-label={`เพิ่ม ${product.name} ไปยังรายการโปรด`}
         >
-          <MdFavoriteBorder className="h-6 w-6" />
+          {isInCart ? <MdFavorite className="h-6 w-6" /> : <MdFavoriteBorder className="h-6 w-6" />}
         </button>
 
         <Link to={`/products/${product.id}`} className="flex h-full flex-1 flex-col">
