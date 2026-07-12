@@ -77,11 +77,21 @@ app.get("/", (req, res) => {
 const authRoutes = require('./routes/auth.routes');
 const productRoutes = require('./routes/product.routes');
 const cartRoutes = require('./routes/cart.routes');
+const orderRoutes = require('./routes/order.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const shipmentRoutes = require('./routes/shipment.routes');
+const inquiryRoutes = require('./routes/inquiry.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/shipments', shipmentRoutes);
+app.use('/api/inquiries', inquiryRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
