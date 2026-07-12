@@ -94,17 +94,11 @@ function HomePage() {
             รวมคอมประกอบและอุปกรณ์เกมมิ่ง ราคาพิเศษ พร้อมให้คุณเลือกสเปกที่ใช่ในสไตล์ของคุณ
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              to="/products"
-              className="rounded-lg bg-sky-500 px-6 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-sky-600"
-            >
-              เลือกซื้อสินค้า
-            </Link>
             <a
               href="#featured-products"
               className="rounded-lg border border-white/60 bg-white/10 px-6 py-3 text-sm font-bold text-white backdrop-blur-sm transition hover:bg-white hover:text-blue-800"
             >
-              ดูสินค้าแนะนำ
+              สินค้าแนะนำ
             </a>
           </div>
         </div>

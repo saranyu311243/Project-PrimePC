@@ -1,35 +1,53 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MdFavorite, MdFavoriteBorder } from 'react-icons/md'
+import { MdAddShoppingCart, MdFavorite, MdFavoriteBorder } from 'react-icons/md'
 import { useCart } from '../hooks/useCart'
+import { useFavorites } from '../hooks/useFavorites'
+import { useAuth } from '../hooks/useAuth'
+import LoginRequiredToast from './LoginRequiredToast'
 
 function ProductCard({ product, variant = 'default' }) {
   const navigate = useNavigate()
-  const { addItem, items, removeItem } = useCart()
-  const isInCart = items.some((item) => item.id === product.id)
-  const toggleCartFavorite = () => {
-    if (!product.inStock) return
-    if (isInCart) {
-      removeItem(product.id)
+  const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
+  const [showLoginMessage, setShowLoginMessage] = useState(false)
+  const { isFavorite, toggleFavorite } = useFavorites()
+  const favorite = isFavorite(product.id)
+  const handleFavorite = () => {
+    if (!isAuthenticated) {
+      setShowLoginMessage(true)
       return
     }
-    addItem(product)
-    navigate('/cart')
+    toggleFavorite(product.id)
+    if (!favorite) navigate('/favorites')
+  }
+  const handleAddToCart = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!isAuthenticated) {
+      setShowLoginMessage(true)
+      return
+    }
+    if (product.inStock) {
+      addItem(product)
+      navigate('/cart')
+    }
   }
 
   if (variant === 'listing') {
     return (
       <article className="group relative flex min-h-[430px] flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-blue-100 hover:shadow-lg">
+        {showLoginMessage && <LoginRequiredToast onClose={() => setShowLoginMessage(false)} />}
         <span className={`absolute left-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>
           {product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}
         </span>
         <button
           type="button"
-          onClick={toggleCartFavorite}
-          disabled={!product.inStock}
-          className={`absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-100 bg-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${isInCart ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}
+          onClick={handleFavorite}
+          className={`absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full border border-slate-100 bg-white shadow-sm transition ${favorite ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}
           aria-label={`เพิ่ม ${product.name} ไปยังรายการโปรด`}
         >
-          {isInCart ? <MdFavorite className="h-6 w-6" /> : <MdFavoriteBorder className="h-6 w-6" />}
+          {favorite ? <MdFavorite className="h-6 w-6" /> : <MdFavoriteBorder className="h-6 w-6" />}
         </button>
 
         <Link to={`/products/${product.id}`} className="flex h-full flex-1 flex-col">
@@ -52,6 +70,7 @@ function ProductCard({ product, variant = 'default' }) {
             <p className="mt-auto pt-4 text-xl font-black text-red-600">
               ฿{product.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
             </p>
+            <button type="button" onClick={handleAddToCart} disabled={!product.inStock} className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-blue-700 px-4 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300"><MdAddShoppingCart className="h-5 w-5" />เพิ่มลงตะกร้า</button>
           </div>
         </Link>
       </article>

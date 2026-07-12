@@ -13,6 +13,9 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { products } from '../data/products'
 import { useCart } from '../hooks/useCart'
+import { useFavorites } from '../hooks/useFavorites'
+import { useAuth } from '../hooks/useAuth'
+import LoginRequiredToast from '../components/LoginRequiredToast'
 
 const serviceHighlights = [
   { title: 'ส่งฟรีทั่วไทย', detail: 'เมื่อช้อปครบ 5,000 บาทขึ้นไป', icon: MdOutlineLocalShipping },
@@ -184,7 +187,10 @@ const getProductSpecs = (product) => {
 function ProductDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { addItem, items, removeItem } = useCart()
+  const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
+  const [showLoginMessage, setShowLoginMessage] = useState(false)
+  const { isFavorite, toggleFavorite } = useFavorites()
   const [quantity, setQuantity] = useState(1)
   const product = products.find((item) => item.id === Number(id))
 
@@ -195,24 +201,28 @@ function ProductDetailPage() {
   if (!product) return <div className="grid min-h-[60vh] place-items-center text-center"><div><h1 className="text-3xl font-black">ไม่พบสินค้า</h1><Link to="/" className="mt-5 inline-block text-blue-700">กลับหน้า Home</Link></div></div>
 
   const specs = getProductSpecs(product)
-  const isInCart = items.some((item) => item.id === product.id)
+  const favorite = isFavorite(product.id)
   const addToCartAndOpen = () => {
+    if (!isAuthenticated) {
+      setShowLoginMessage(true)
+      return
+    }
     if (!product.inStock) return
     addItem(product, quantity)
     navigate('/cart')
   }
-  const toggleCartFavorite = () => {
-    if (!product.inStock) return
-    if (isInCart) {
-      removeItem(product.id)
+  const handleFavorite = () => {
+    if (!isAuthenticated) {
+      setShowLoginMessage(true)
       return
     }
-    addItem(product, quantity)
-    navigate('/cart')
+    toggleFavorite(product.id)
+    if (!favorite) navigate('/favorites')
   }
 
   return (
     <div>
+      {showLoginMessage && <LoginRequiredToast onClose={() => setShowLoginMessage(false)} />}
       <section className="product-detail-layout">
         <div className="min-w-0">
           <div className="flex min-h-[560px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white p-10 shadow-sm">
@@ -223,7 +233,7 @@ function ProductDetailPage() {
 
         <div className="min-w-0 px-1 py-1">
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>{product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}</span>
-          <div className="mt-4 flex items-start justify-between gap-4"><h1 className="text-xl font-black leading-8 text-slate-900">{product.name}</h1><button type="button" onClick={toggleCartFavorite} disabled={!product.inStock} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 disabled:cursor-not-allowed disabled:opacity-40 ${isInCart ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}>{isInCart ? <MdFavorite className="h-5 w-5" /> : <MdFavoriteBorder className="h-5 w-5" />}</button></div>
+          <div className="mt-4 flex items-start justify-between gap-4"><h1 className="text-xl font-black leading-8 text-slate-900">{product.name}</h1><button type="button" onClick={handleFavorite} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 ${favorite ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}>{favorite ? <MdFavorite className="h-5 w-5" /> : <MdFavoriteBorder className="h-5 w-5" />}</button></div>
           <p className="mt-3 text-sm text-slate-500">แบรนด์: <strong className="text-slate-700">{product.brand.toUpperCase()}</strong><span className="mx-3">|</span>รหัสสินค้า: SKU-{String(product.id).padStart(8, '0')}</p>
           <div className="mt-5 border-t border-slate-300 pt-5"><p className="text-2xl font-black text-slate-900">฿{product.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</p></div>
 

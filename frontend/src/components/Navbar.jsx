@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart } from 'react-icons/md'
+import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart } from 'react-icons/md'
 import { categories } from '../data/categories'
 import { homeBrandOptions } from '../data/productListConfig'
 import { products } from '../data/products'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../hooks/useAuth'
 
 const categorySearchAliases = {
   cpu: ['cpu', 'processor', 'ซีพียู', 'หน่วยประมวลผล'],
@@ -25,9 +26,17 @@ const categorySearchAliases = {
 
 function Navbar() {
   const navigate = useNavigate()
-  const { itemCount } = useCart()
+  const { itemCount, clearCart } = useCart()
+  const { user, isAuthenticated, logout } = useAuth()
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('home')
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const handleLogout = () => {
+    clearCart()
+    logout()
+    setAccountMenuOpen(false)
+    navigate('/')
+  }
 
   const handleSearch = (event) => {
     event.preventDefault()
@@ -118,7 +127,7 @@ function Navbar() {
           </button>
         </form>
 
-        <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
+        <div className="relative ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
           <Link to="/cart" className="relative flex items-center gap-2 text-white hover:text-sky-200">
             <span className="relative">
               <MdOutlineShoppingCart className="h-6 w-6" aria-hidden="true" />
@@ -127,10 +136,31 @@ function Navbar() {
             <span className="hidden text-xs font-semibold sm:inline">ตะกร้าสินค้า</span>
           </Link>
 
-          <Link to="/login" className="flex items-center gap-2 border-l border-blue-600 pl-3 text-white hover:text-sky-200 sm:pl-5">
-            <MdOutlinePerson className="h-6 w-6" aria-hidden="true" />
-            <span className="hidden text-xs font-semibold sm:inline">เข้าสู่ระบบ</span>
-          </Link>
+          {isAuthenticated ? (
+            <div className="relative">
+              <button type="button" onClick={() => setAccountMenuOpen((value) => !value)} className="flex items-center gap-1 border-l border-blue-600 pl-3 text-white hover:text-sky-200 sm:pl-5" aria-expanded={accountMenuOpen}>
+                <MdOutlinePerson className="h-6 w-6" aria-hidden="true" />
+                <span className="hidden max-w-28 truncate text-xs font-semibold sm:inline">{user?.firstName || user?.email?.split('@')[0]}</span>
+                <MdArrowDropDown className={`h-5 w-5 transition ${accountMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {accountMenuOpen && (
+                <div className="absolute right-0 top-full z-50 mt-4 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-700 shadow-2xl">
+                  <p className="truncate border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold">{user?.email}</p>
+                  <div className="p-2 text-sm">
+                    <Link to="/" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdHome className="h-5 w-5" />หน้าหลัก</Link>
+                    <Link to="/profile" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlinePerson className="h-5 w-5" />ข้อมูลส่วนตัว</Link>
+                    <Link to="/favorites" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdFavoriteBorder className="h-5 w-5" />สินค้าที่ชื่นชอบ</Link>
+                    <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-red-50 hover:text-red-600"><MdLogout className="h-5 w-5" />ออกจากระบบ</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="flex items-center gap-2 border-l border-blue-600 pl-3 text-white hover:text-sky-200 sm:pl-5">
+              <MdOutlinePerson className="h-6 w-6" aria-hidden="true" />
+              <span className="hidden text-xs font-semibold sm:inline">เข้าสู่ระบบ</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

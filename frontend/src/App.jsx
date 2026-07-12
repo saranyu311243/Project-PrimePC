@@ -10,6 +10,8 @@ import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListPage from './pages/ProductListPage'
 import RegisterPage from './pages/RegisterPage'
 import SearchNotFoundPage from './pages/SearchNotFoundPage'
+import FavoritePage from './pages/FavoritePage'
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 
 function ProductListRoute() {
   const location = useLocation()
@@ -33,6 +35,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/profile" element={<CustomerProfilePage />} />
+        <Route path="/favorites" element={<FavoritePage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Route>
     </Routes>
   )
