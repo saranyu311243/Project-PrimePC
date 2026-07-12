@@ -3,7 +3,6 @@ const router = express.Router();
 const orderController = require('../controllers/order.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const checkRole = require('../middlewares/checkRole');
-const { criticalLimiter } = require('../middlewares/criticalRateLimiter');
 const { sanitizeInput } = require('../middlewares/validateInput');
 
 /**
@@ -40,7 +39,7 @@ const { sanitizeInput } = require('../middlewares/validateInput');
  *       201:
  *         description: Order created
  */
-router.post('/', criticalLimiter, verifyToken, sanitizeInput, orderController.createOrder);
+router.post('/', verifyToken, sanitizeInput, orderController.createOrder);
 
 /**
  * @swagger

@@ -3,7 +3,6 @@ const router = express.Router();
 const paymentController = require('../controllers/payment.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const checkRole = require('../middlewares/checkRole');
-const { criticalLimiter } = require('../middlewares/criticalRateLimiter');
 const { sanitizeInput } = require('../middlewares/validateInput');
 
 /**
@@ -52,7 +51,7 @@ router.get('/options', paymentController.getPaymentOptions);
  *       201:
  *         description: Payment created
  */
-router.post('/', criticalLimiter, verifyToken, sanitizeInput, paymentController.createPayment);
+router.post('/', verifyToken, sanitizeInput, paymentController.createPayment);
 
 /**
  * @swagger

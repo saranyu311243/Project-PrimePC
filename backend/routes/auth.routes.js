@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
-const { authLimiter } = require('../middlewares/criticalRateLimiter');
 const verifyToken = require('../middlewares/verifyToken');
 const { validateRegister, validateLogin, sanitizeInput } = require('../middlewares/validateInput');
 
@@ -32,7 +31,7 @@ const { validateRegister, validateLogin, sanitizeInput } = require('../middlewar
  *       201:
  *         description: User registered successfully
  */
-router.post('/register', authLimiter, sanitizeInput, validateRegister, authController.register);
+router.post('/register', sanitizeInput, validateRegister, authController.register);
 
 /**
  * @swagger
@@ -55,7 +54,7 @@ router.post('/register', authLimiter, sanitizeInput, validateRegister, authContr
  *       200:
  *         description: Login successful
  */
-router.post('/login', authLimiter, sanitizeInput, validateLogin, authController.login);
+router.post('/login', sanitizeInput, validateLogin, authController.login);
 
 /**
  * @swagger
