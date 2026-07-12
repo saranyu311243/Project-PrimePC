@@ -3,3 +3,7 @@ node_modules
 .env
 
 /generated/prisma
+
+# SQLite database (ใช้ Supabase แทน)
+*.db
+*.db-journal

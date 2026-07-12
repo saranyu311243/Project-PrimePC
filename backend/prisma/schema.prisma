@@ -7,15 +7,222 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ========================================
+// User Models
+// ========================================
+
 model User {
-
-  id Int @id @default(autoincrement())
-
-  name String
-
-  email String @unique
-
-  password String
-
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  address   String?
+  role      Role     @default(CUSTOMER)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  carts         Cart[]
+  orders        Order[]
+  inquiries     Inquiry[]
+  loginHistory  LoginRecord[]
+
+  @@map("users")
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+  ADMIN
+}
+
+model LoginRecord {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  loginTime DateTime @default(now())
+  ipAddress String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("login_records")
+}
+
+// ========================================
+// Product Models
+// ========================================
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  stock       Int      @default(0)
+  imageUrl    String?
+  category    String
+  brand       String?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+// ========================================
+// Cart Models
+// ========================================
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        Int @id @default(autoincrement())
+  cartId    Int
+  productId Int
+  quantity  Int @default(1)
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+// ========================================
+// Order Models
+// ========================================
+
+model Order {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  totalAmount   Float
+  status        OrderStatus @default(PENDING)
+  shippingAddress String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  payment    Payment?
+  shipment   Shipment?
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id        Int   @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Float
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+// ========================================
+// Payment Models
+// ========================================
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  amount        Float
+  method        String?
+  status        PaymentStatus @default(PENDING)
+  transactionId String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// ========================================
+// Shipment Models
+// ========================================
+
+model Shipment {
+  id             Int            @id @default(autoincrement())
+  orderId        Int            @unique
+  trackingNumber String?
+  status         ShipmentStatus @default(PREPARING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("shipments")
+}
+
+enum ShipmentStatus {
+  PREPARING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+}
+
+// ========================================
+// Inquiry Models
+// ========================================
+
+model Inquiry {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  response  String?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("inquiries")
+}
+
+// ========================================
+// Report Models (for Admin Dashboard)
+// ========================================
+
+model Report {
+  id          Int      @id @default(autoincrement())
+  reportType  String
+  data        String
+  generatedBy String?
+  createdAt   DateTime @default(now())
+
+  @@map("reports")
 }
