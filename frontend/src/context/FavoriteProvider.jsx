@@ -20,7 +20,12 @@ function FavoriteProvider({ children }) {
     })
   }
 
-  return <FavoriteContext.Provider value={{ favoriteIds, toggleFavorite, isFavorite: (id) => favoriteIds.includes(id) }}>{children}</FavoriteContext.Provider>
+  const clearFavorites = () => {
+    setFavoriteIds([])
+    localStorage.removeItem('primepc-favorites')
+  }
+
+  return <FavoriteContext.Provider value={{ favoriteIds, toggleFavorite, clearFavorites, isFavorite: (id) => favoriteIds.includes(id) }}>{children}</FavoriteContext.Provider>
 }
 
 export default FavoriteProvider

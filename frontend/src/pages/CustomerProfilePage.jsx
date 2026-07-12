@@ -20,7 +20,7 @@ const emptyAddress = { fullName: '', phone: '', address: '', postalCode: '', pro
 function CustomerProfilePage() {
   const navigate = useNavigate()
   const { user, logout, updateUser } = useAuth()
-  const { favoriteIds } = useFavorites()
+  const { favoriteIds, clearFavorites } = useFavorites()
   const { clearCart } = useCart()
   const [activeTab, setActiveTab] = useState('profile')
   const [profile, setProfile] = useState(() => readStorage('primepc-profile', { firstName: '', lastName: '', email: user?.email || '', phone: '', birthDate: '' }))
@@ -64,6 +64,7 @@ function CustomerProfilePage() {
   }
   const handleLogout = () => {
     clearCart()
+    clearFavorites()
     logout()
     navigate('/')
   }

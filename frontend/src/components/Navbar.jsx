@@ -6,6 +6,7 @@ import { homeBrandOptions } from '../data/productListConfig'
 import { products } from '../data/products'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../hooks/useAuth'
+import { useFavorites } from '../hooks/useFavorites'
 
 const categorySearchAliases = {
   cpu: ['cpu', 'processor', 'ซีพียู', 'หน่วยประมวลผล'],
@@ -28,11 +29,13 @@ function Navbar() {
   const navigate = useNavigate()
   const { itemCount, clearCart } = useCart()
   const { user, isAuthenticated, logout } = useAuth()
+  const { clearFavorites } = useFavorites()
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('home')
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const handleLogout = () => {
     clearCart()
+    clearFavorites()
     logout()
     setAccountMenuOpen(false)
     navigate('/')
