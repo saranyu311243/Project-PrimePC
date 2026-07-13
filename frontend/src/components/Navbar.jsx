@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart } from 'react-icons/md'
+import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory } from 'react-icons/md'
 import { categories } from '../data/categories'
 import { homeBrandOptions } from '../data/productListConfig'
 import { products } from '../data/products'
@@ -131,6 +131,11 @@ function Navbar() {
         </form>
 
         <div className="relative ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
+          <Link to="/contact" className="hidden items-center gap-2 text-white hover:text-sky-200 sm:flex">
+            <MdContactSupport className="h-6 w-6" aria-hidden="true" />
+            <span className="hidden text-xs font-semibold sm:inline">ติดต่อ</span>
+          </Link>
+
           <Link to="/cart" className="relative flex items-center gap-2 text-white hover:text-sky-200">
             <span className="relative">
               <MdOutlineShoppingCart className="h-6 w-6" aria-hidden="true" />
@@ -151,6 +156,8 @@ function Navbar() {
                   <p className="truncate border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold">{user?.email}</p>
                   <div className="p-2 text-sm">
                     <Link to="/" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdHome className="h-5 w-5" />หน้าหลัก</Link>
+                    <Link to="/orders" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdHistory className="h-5 w-5" />ประวัติคำสั่งซื้อ</Link>
+                    <Link to="/order-tracking" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlineSearch className="h-5 w-5" />ติดตามพัสดุ</Link>
                     <Link to="/profile" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlinePerson className="h-5 w-5" />ข้อมูลส่วนตัว</Link>
                     <Link to="/favorites" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdFavoriteBorder className="h-5 w-5" />สินค้าที่ชื่นชอบ</Link>
                     <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-red-50 hover:text-red-600"><MdLogout className="h-5 w-5" />ออกจากระบบ</button>

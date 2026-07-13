@@ -12,6 +12,13 @@ import RegisterPage from './pages/RegisterPage'
 import SearchNotFoundPage from './pages/SearchNotFoundPage'
 import FavoritePage from './pages/FavoritePage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import CheckoutPage from './pages/CheckoutPage'
+import PaymentPage from './pages/PaymentPage'
+import OrderTrackingPage from './pages/OrderTrackingPage'
+import OrderHistoryPage from './pages/OrderHistoryPage'
+import ContactPage from './pages/ContactPage'
+import StaffDashboard from './pages/StaffDashboard'
+import AdminDashboard from './pages/AdminDashboard'
 
 function ProductListRoute() {
   const location = useLocation()
@@ -37,6 +44,13 @@ function App() {
         <Route path="/profile" element={<CustomerProfilePage />} />
         <Route path="/favorites" element={<FavoritePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/payment" element={<PaymentPage />} />
+        <Route path="/order-tracking" element={<OrderTrackingPage />} />
+        <Route path="/orders" element={<OrderHistoryPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/staff" element={<StaffDashboard />} />
+        <Route path="/admin" element={<AdminDashboard />} />
       </Route>
     </Routes>
   )
