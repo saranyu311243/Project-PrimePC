@@ -72,13 +72,13 @@ function StatCard({ icon: Icon, label, value, gradient, bg, text }) {
   )
 }
 
-/** สร้าง OHLC candlestick data จากรายได้รวมและข้อมูลที่มี */
-function buildCandlestickData(totalRevenue, totalOrders) {
+/** สร้างข้อมูลสำหรับ Bar chart จากรายได้รวมและข้อมูลที่มี */
+function buildChartData(totalRevenue, totalOrders) {
   const data = []
   const today = new Date()
   const baseRevenue = (totalRevenue ?? 0) / 30 || 5000
 
-  // สร้าง 30 วันย้อนหลัง พร้อม OHLC ที่สมจริง
+  // สร้าง 30 วันย้อนหลัง
   let prevClose = baseRevenue * (0.8 + Math.random() * 0.4)
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today)
@@ -96,24 +96,22 @@ function buildCandlestickData(totalRevenue, totalOrders) {
     const open = prevClose
     const change = (Math.random() - 0.48) * volatility * baseRevenue * multiplier
     const close = Math.max(open + change, baseRevenue * 0.2)
-    const high = Math.max(open, close) * (1 + Math.random() * 0.04)
-    const low = Math.min(open, close) * (1 - Math.random() * 0.04)
 
-    data.push({ x: ts, y: [Math.round(open), Math.round(high), Math.round(low), Math.round(close)] })
+    data.push({ x: ts, y: Math.round(close) })
     prevClose = close
   }
   return data
 }
 
-function CandlestickChart({ totalRevenue, totalOrders, loading }) {
+function RevenueBarChart({ totalRevenue, totalOrders, loading }) {
   const series = useMemo(
-    () => [{ name: 'ยอดขาย (฿)', data: buildCandlestickData(totalRevenue, totalOrders) }],
+    () => [{ name: 'ยอดขาย (฿)', data: buildChartData(totalRevenue, totalOrders) }],
     [totalRevenue, totalOrders]
   )
 
   const options = {
     chart: {
-      type: 'candlestick',
+      type: 'bar',
       height: 380,
       toolbar: { show: true, tools: { download: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } },
       background: 'transparent',
@@ -137,10 +135,14 @@ function CandlestickChart({ totalRevenue, totalOrders, loading }) {
       tooltip: { enabled: true },
     },
     plotOptions: {
-      candlestick: {
-        colors: { upward: '#10b981', downward: '#ef4444' },
-        wick: { useFillColor: true },
+      bar: {
+        borderRadius: 4,
+        columnWidth: '60%',
       },
+    },
+    colors: ['#3b82f6'],
+    dataLabels: {
+      enabled: false,
     },
     grid: { borderColor: '#f1f5f9', strokeDashArray: 4, xaxis: { lines: { show: false } } },
     tooltip: {
@@ -166,7 +168,7 @@ function CandlestickChart({ totalRevenue, totalOrders, loading }) {
     <ReactApexChart
       options={options}
       series={series}
-      type="candlestick"
+      type="bar"
       height={380}
     />
   )
@@ -293,31 +295,18 @@ function AdminDashboard() {
           ))}
         </section>
 
-        {/* ── Candlestick Chart ── */}
+        {/* ── Bar Chart ── */}
         <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
           <div className="flex flex-wrap items-start justify-between gap-4 mb-2">
             <div>
               <div className="flex items-center gap-2">
-                <MdCandlestickChart className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-lg font-black text-slate-900">กราฟยอดขายรายวัน (Candlestick)</h2>
+                <MdBarChart className="h-5 w-5 text-blue-600" />
+                <h2 className="text-lg font-black text-slate-900">กราฟยอดขายรายวัน</h2>
               </div>
-              <p className="mt-1 text-sm text-slate-500">ติดตามความผันผวนของยอดขาย 30 วันล่าสุด</p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-semibold">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-sm bg-emerald-500" />
-                ยอดขายเพิ่มขึ้น
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 w-3 rounded-sm bg-red-500" />
-                ยอดขายลดลง
-              </span>
+              <p className="mt-1 text-sm text-slate-500">ติดตามยอดขาย 30 วันล่าสุดแบบรายวัน</p>
             </div>
           </div>
-          <CandlestickChart totalRevenue={totalRevenue} totalOrders={totalOrders} loading={loading} />
-          <p className="mt-2 text-center text-[11px] text-slate-400">
-            * แต่ละแท่งเทียนแสดง Open / High / Low / Close ของยอดขายต่อวัน · เขียว = วันที่ยอดสูงขึ้น · แดง = วันที่ยอดต่ำลง
-          </p>
+          <RevenueBarChart totalRevenue={totalRevenue} totalOrders={totalOrders} loading={loading} />
         </section>
 
         {/* ── Tabs ── */}
