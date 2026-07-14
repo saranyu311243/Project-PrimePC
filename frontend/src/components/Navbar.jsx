@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory } from 'react-icons/md'
+import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory, MdDashboard, MdAdminPanelSettings } from 'react-icons/md'
 import { categories } from '../data/categories'
 import { homeBrandOptions } from '../data/productListConfig'
 import { useCart } from '../hooks/useCart'
@@ -161,6 +161,17 @@ function Navbar() {
                     <Link to="/order-tracking" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlineSearch className="h-5 w-5" />ติดตามพัสดุ</Link>
                     <Link to="/profile" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlinePerson className="h-5 w-5" />ข้อมูลส่วนตัว</Link>
                     <Link to="/favorites" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdFavoriteBorder className="h-5 w-5" />สินค้าที่ชื่นชอบ</Link>
+                    {(user?.role === 'STAFF' || user?.role === 'ADMIN') && (
+                      <>
+                        <div className="mx-3 my-1 border-t border-slate-200" />
+                        <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">ระบบจัดการ</p>
+                        <Link to="/staff" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 font-semibold text-indigo-700 hover:bg-indigo-50"><MdDashboard className="h-5 w-5" />แดชบอร์ดพนักงาน</Link>
+                      </>
+                    )}
+                    {user?.role === 'ADMIN' && (
+                      <Link to="/admin" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg bg-purple-50 px-3 py-2.5 font-semibold text-purple-700 hover:bg-purple-100"><MdAdminPanelSettings className="h-5 w-5" />แดชบอร์ดผู้ดูแล</Link>
+                    )}
+                    <div className="mx-3 my-1 border-t border-slate-200" />
                     <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-red-50 hover:text-red-600"><MdLogout className="h-5 w-5" />ออกจากระบบ</button>
                   </div>
                 </div>
