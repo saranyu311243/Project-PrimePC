@@ -4,9 +4,10 @@ import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { categories } from '../data/categories'
 import { categoryFilterDefinitions, categoryHeaders, categorySearchAliases, homeBrandOptions } from '../data/productListConfig'
-import { products } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 
 function ProductListPage() {
+  const { products, loading } = useProducts()
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedCategory = searchParams.get('category') ?? 'cpu'
   const navbarSearch = searchParams.get('search') ?? ''
@@ -18,10 +19,10 @@ function ProductListPage() {
   const sortBy = searchParams.get('sort') ?? 'price-asc'
 
   const eligibleProducts = useMemo(() => products.filter((product) =>
-    product.category === selectedCategory && homeBrandOptions.includes(product.brand.toUpperCase())), [selectedCategory])
+    product.category === selectedCategory && homeBrandOptions.includes(product.brand?.toUpperCase())), [products, selectedCategory])
   const maxPrice = Math.max(...eligibleProducts.map((product) => product.price), 1000)
   const currentMax = price.max ?? maxPrice
-  const brandOptions = homeBrandOptions.filter((brand) => eligibleProducts.some((product) => product.brand.toUpperCase() === brand))
+  const brandOptions = homeBrandOptions.filter((brand) => eligibleProducts.some((product) => product.brand?.toUpperCase() === brand))
   const definitions = useMemo(() => categoryFilterDefinitions[selectedCategory] ?? [], [selectedCategory])
 
   const filteredProducts = useMemo(() => {
@@ -37,7 +38,7 @@ function ProductListPage() {
         return selected.includes(product[definition.field])
       })
       return tokens.every((token) => haystack.includes(token)) &&
-        (!brands.length || brands.includes(product.brand.toUpperCase())) &&
+        (!brands.length || brands.includes(product.brand?.toUpperCase())) &&
         (!availability.length || availability.includes(stock)) && matchesCustom &&
         product.price >= price.min && product.price <= currentMax
     }).sort((a, b) => sortBy === 'price-desc' ? b.price - a.price : a.price - b.price)
@@ -82,7 +83,7 @@ function ProductListPage() {
         <details open className="group mt-5 border-t border-slate-100 pt-4"><summary className="flex cursor-pointer list-none justify-between text-sm font-semibold text-slate-500">Brand<MdKeyboardArrowRight className="h-5 w-5 transition group-open:rotate-90" /></summary><div className="mt-4 space-y-3">{brandOptions.map((brand) => <label key={brand} className="flex gap-3 text-sm"><input type="checkbox" checked={brands.includes(brand)} onChange={() => toggle(brand, brands, setBrands)} className="h-5 w-5 accent-blue-700" />{brand}</label>)}</div></details>
         {definitions.map((definition) => <details key={definition.field} className="group mt-4 border-t border-slate-100 pt-4"><summary className="flex cursor-pointer list-none justify-between text-sm font-semibold text-slate-500">{definition.label}<MdKeyboardArrowRight className="h-5 w-5 transition group-open:rotate-90" /></summary><div className="mt-4 space-y-3">{definition.options.map((option) => <label key={option} className="flex gap-3 text-sm"><input type="checkbox" checked={(filters[definition.field] ?? []).includes(option)} onChange={() => toggleFilter(definition.field, option)} className="h-5 w-5 accent-blue-700" />{definition.field === 'continuousPower' ? `${option} Watt` : option}</label>)}</div></details>)}
       </aside>
-      <section aria-live="polite">{filteredProducts.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} variant="listing" />)}</div> : <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><p className="text-xl font-extrabold">ไม่พบสินค้าที่ค้นหา</p></div>}</section>
+      <section aria-live="polite">{loading ? <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><p className="text-lg font-bold text-slate-500">กำลังโหลดสินค้า...</p></div> : filteredProducts.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} variant="listing" />)}</div> : <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><p className="text-xl font-extrabold">ไม่พบสินค้าที่ค้นหา</p></div>}</section>
     </div>
   </div>
 }

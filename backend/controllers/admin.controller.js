@@ -1,16 +1,24 @@
 const prisma = require('../lib/prisma');
 
+// รายได้จริงนับเฉพาะออเดอร์ที่ผ่านการชำระเงินแล้ว (ไม่รวม PENDING/CANCELLED)
+const REVENUE_STATUSES = ['PROCESSING', 'SHIPPING', 'DELIVERED'];
+
 const getDashboard = async (req, res) => {
   try {
-    const totalUsers = await prisma.user.count();
-    const totalOrders = await prisma.order.count();
-    const revenueAgg = await prisma.order.aggregate({ _sum: { totalAmount: true } });
+    const [totalUsers, totalOrders, revenueAgg, pendingOrders] = await Promise.all([
+      prisma.user.count(),
+      prisma.order.count(),
+      prisma.order.aggregate({
+        where: { status: { in: REVENUE_STATUSES } },
+        _sum: { totalAmount: true }
+      }),
+      prisma.order.count({ where: { status: 'PENDING' } })
+    ]);
     const totalRevenue = revenueAgg._sum.totalAmount || 0;
-    const pendingOrders = await prisma.order.count({ where: { status: 'PENDING' } });
 
     res.json({ success: true, data: { totalUsers, totalOrders, totalRevenue, pendingOrders } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get dashboard', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get dashboard', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
   }
 };
 
@@ -30,9 +38,18 @@ const getAllUsers = async (req, res) => {
       prisma.user.count()
     ]);
 
-    res.json({ success: true, data: users, pagination: { total, page: parseInt(page), limit: parseInt(limit) } });
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get users', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get users', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
   }
 };
 
@@ -54,7 +71,7 @@ const updateUserRole = async (req, res) => {
 
     res.json({ success: true, message: 'User role updated', data: user });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to update user role', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to update user role', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
   }
 };
 
@@ -81,7 +98,7 @@ const getSalesReport = async (req, res) => {
       }),
       prisma.order.count({ where }),
       prisma.order.aggregate({
-        where,
+        where: { ...where, status: { in: REVENUE_STATUSES } },
         _sum: { totalAmount: true }
       })
     ]);
@@ -103,7 +120,7 @@ const getSalesReport = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get sales report', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get sales report', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
   }
 };
 
@@ -120,7 +137,7 @@ const deleteUser = async (req, res) => {
     await prisma.user.delete({ where: { id: parseInt(id) } });
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to delete user', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete user', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
   }
 };
 

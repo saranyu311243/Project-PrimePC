@@ -2,6 +2,7 @@
 import { useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import MainLayout from './components/MainLayout'
+import RoleRoute from './components/RoleRoute'
 import CartPage from './pages/CartPage'
 import CustomerProfilePage from './pages/CustomerProfilePage'
 import HomePage from './pages/HomePage'
@@ -49,8 +50,8 @@ function App() {
         <Route path="/order-tracking" element={<OrderTrackingPage />} />
         <Route path="/orders" element={<OrderHistoryPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/staff" element={<StaffDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/staff" element={<RoleRoute allow={['STAFF', 'ADMIN']}><StaffDashboard /></RoleRoute>} />
+        <Route path="/admin" element={<RoleRoute allow={['ADMIN']}><AdminDashboard /></RoleRoute>} />
       </Route>
     </Routes>
   )

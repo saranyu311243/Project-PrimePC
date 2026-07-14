@@ -119,15 +119,22 @@ const createOrder = async (req, res) => {
         });
         orderItems.push(orderItem);
 
-        // ลด stock
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity
-            }
-          }
+        // ลด stock แบบ atomic: ตัดเฉพาะเมื่อ stock ยังพอ (กัน race ขายเกิน)
+        const decremented = await tx.product.updateMany({
+          where: { id: item.productId, stock: { gte: item.quantity } },
+          data: { stock: { decrement: item.quantity } }
         });
+
+        // ถ้าไม่มีแถวถูกอัปเดต แสดงว่ามีคนตัด stock ไปก่อนจน stock ไม่พอ
+        if (decremented.count === 0) {
+          throw new Error(`INSUFFICIENT_STOCK:${item.product.name}`);
+        }
+      }
+
+      // 3. ล้างตะกร้าของผู้ใช้หลังสั่งซื้อสำเร็จ (ถ้ามี)
+      const cart = await tx.cart.findFirst({ where: { userId: parseInt(userId) } });
+      if (cart) {
+        await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
       }
 
       return { order, items: orderItems };
@@ -141,10 +148,20 @@ const createOrder = async (req, res) => {
 
   } catch (error) {
     console.error('Create order error:', error);
+
+    // stock ถูกตัดไปก่อนระหว่างสั่งซื้อพร้อมกัน → แจ้งเป็น 400
+    if (error.message && error.message.startsWith('INSUFFICIENT_STOCK:')) {
+      const productName = error.message.split(':')[1];
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient stock for "${productName}" — please try again`
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to create order',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -197,7 +214,7 @@ const getAllOrders = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get orders',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -250,7 +267,7 @@ const getOrderById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get order',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -303,7 +320,7 @@ const updateOrderStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update order status',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -311,8 +328,19 @@ const updateOrderStatus = async (req, res) => {
 const getOrdersByCustomer = async (req, res) => {
   try {
     const { id } = req.params;
+    const customerId = parseInt(id);
+
+    // Access control: customers can only view their own orders.
+    // Staff/admin may view any customer's orders.
+    if (req.user && req.user.role === 'CUSTOMER' && req.user.id !== customerId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
     const orders = await prisma.order.findMany({
-      where: { userId: parseInt(id) },
+      where: { userId: customerId },
       include: {
         orderItems: {
           include: {
@@ -334,7 +362,7 @@ const getOrdersByCustomer = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get customer orders',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -408,7 +436,7 @@ const cancelOrder = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to cancel order',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

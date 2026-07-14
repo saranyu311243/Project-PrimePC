@@ -48,7 +48,7 @@ const createInquiry = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create inquiry',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -86,7 +86,7 @@ const getInquiries = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get inquiries',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -134,7 +134,7 @@ const getInquiryById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get inquiry',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -185,7 +185,7 @@ const getAllInquiries = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get inquiries',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -246,7 +246,7 @@ const respondInquiry = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to respond to inquiry',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -289,7 +289,7 @@ const closeInquiry = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to close inquiry',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

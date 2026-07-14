@@ -68,7 +68,7 @@ const register = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Registration failed',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -145,7 +145,7 @@ const login = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Login failed',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -181,7 +181,7 @@ const getProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get profile',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -217,7 +217,7 @@ const updateProfile = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update profile',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

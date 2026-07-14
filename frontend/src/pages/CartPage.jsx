@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { MdAdd, MdDeleteOutline, MdLocalShipping, MdOutlineShoppingCart, MdRemove } from 'react-icons/md'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../hooks/useAuth'
 
 const money = (value) => value.toLocaleString('th-TH', { minimumFractionDigits: 2 })
 
 function CartPage() {
+  const navigate = useNavigate()
   const { items, itemCount, subtotal, updateQuantity, removeItem } = useCart()
+  const { isAuthenticated } = useAuth()
   const [coupon, setCoupon] = useState('')
   const [appliedCoupon, setAppliedCoupon] = useState('')
   const [couponMessage, setCouponMessage] = useState('')
@@ -24,6 +27,15 @@ function CartPage() {
     const valid = code === 'PRIMEPC100'
     setAppliedCoupon(valid ? code : '')
     setCouponMessage(valid ? 'ใช้คูปองสำเร็จ ลดทันที 100 บาท' : 'ไม่พบโค้ดคูปองนี้')
+  }
+
+  const proceedToCheckout = () => {
+    // Checkout requires a login (order is created against the user account).
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/cart' } })
+      return
+    }
+    navigate('/checkout', { state: { discount, coupon: appliedCoupon } })
   }
 
   if (!items.length) {
@@ -92,7 +104,7 @@ function CartPage() {
               <div className="flex justify-between gap-4 border-t border-slate-200 pt-5 text-lg"><span className="font-black">ยอดรวมสุทธิ</span><strong className="text-blue-800">฿{money(total)}</strong></div>
             </div>
             <div className="mt-6 flex gap-3 rounded-2xl bg-blue-50 p-4 text-sm leading-6 text-blue-900"><MdLocalShipping className="mt-0.5 h-7 w-7 shrink-0" /><p>จัดส่งฟรีทั่วไทยเมื่อยอดสั่งซื้อครบ 5,000 บาท</p></div>
-            <button type="button" className="mt-auto w-full rounded-2xl bg-blue-700 px-5 py-4 text-lg font-black text-white hover:bg-blue-800">ดำเนินการต่อ</button>
+            <button type="button" onClick={proceedToCheckout} className="mt-auto w-full rounded-2xl bg-blue-700 px-5 py-4 text-lg font-black text-white hover:bg-blue-800">ดำเนินการต่อ</button>
           </section>
         </aside>
       </div>

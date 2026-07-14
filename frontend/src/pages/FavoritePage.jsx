@@ -1,11 +1,12 @@
 import { MdFavorite } from 'react-icons/md'
 import { Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
-import { products } from '../data/products'
 import { useFavorites } from '../hooks/useFavorites'
+import { useProducts } from '../hooks/useProducts'
 
 function FavoritePage() {
   const { favoriteIds } = useFavorites()
+  const { products } = useProducts()
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id))
 
   return (

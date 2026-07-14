@@ -133,7 +133,7 @@ const createPayment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create payment',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -181,7 +181,7 @@ const getPaymentByOrder = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get payment',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -252,7 +252,7 @@ const confirmPayment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to confirm payment',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

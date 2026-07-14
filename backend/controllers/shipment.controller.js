@@ -92,7 +92,7 @@ const createShipment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create shipment',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -178,7 +178,7 @@ const updateShipmentStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update shipment',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -227,7 +227,7 @@ const getShipmentByOrderId = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get shipment',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -282,7 +282,7 @@ const getAllShipments = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get shipments',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

@@ -3,10 +3,10 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory } from 'react-icons/md'
 import { categories } from '../data/categories'
 import { homeBrandOptions } from '../data/productListConfig'
-import { products } from '../data/products'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../hooks/useAuth'
 import { useFavorites } from '../hooks/useFavorites'
+import { useProducts } from '../hooks/useProducts'
 
 const categorySearchAliases = {
   cpu: ['cpu', 'processor', 'ซีพียู', 'หน่วยประมวลผล'],
@@ -30,6 +30,7 @@ function Navbar() {
   const { itemCount, clearCart } = useCart()
   const { user, isAuthenticated, logout } = useAuth()
   const { clearFavorites } = useFavorites()
+  const { products } = useProducts()
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('home')
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
@@ -52,7 +53,7 @@ function Navbar() {
 
     const searchTokens = normalizedSearch.split(/\s+/).filter(Boolean)
     const matchingProduct = normalizedSearch ? products.find((product) => {
-      if (!homeBrandOptions.includes(product.brand.toUpperCase())) return false
+      if (!homeBrandOptions.includes(product.brand?.toUpperCase())) return false
       const haystack = [
         product.name,
         product.brand,
@@ -72,7 +73,7 @@ function Navbar() {
       : selectedCategory
     const hasMatchingProduct = !normalizedSearch || products.some((product) => {
       if (product.category !== targetCategory) return false
-      if (!homeBrandOptions.includes(product.brand.toUpperCase())) return false
+      if (!homeBrandOptions.includes(product.brand?.toUpperCase())) return false
       const haystack = [
         product.name,
         product.brand,

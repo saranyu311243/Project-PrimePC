@@ -60,7 +60,7 @@ const getAllProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get products',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -89,7 +89,7 @@ const getProductById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get product',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -120,7 +120,7 @@ const createProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create product',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -181,20 +181,42 @@ const updateProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update product',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
 
 // Delete product (Admin only)
+// ถ้าสินค้าเคยถูกสั่งซื้อ จะ soft-delete (ปิดการขาย) เพื่อรักษาประวัติออเดอร์ไว้
+// เพราะ OrderItem ผูกกับ Product แบบ onDelete: Cascade การลบจริงจะทำให้ประวัติหาย
 const deleteProduct = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parseInt(req.params.id);
 
-    await prisma.product.delete({
-      where: { id: parseInt(id) }
-    });
+    const existing = await prisma.product.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
 
+    const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
+
+    if (orderItemCount > 0) {
+      // มีประวัติการสั่งซื้อ → soft-delete: ปิดการขายแทนการลบจริง
+      await prisma.product.update({
+        where: { id },
+        data: { isAvailable: false }
+      });
+      return res.json({
+        success: true,
+        message: 'Product has order history — marked as unavailable instead of deleting'
+      });
+    }
+
+    // ไม่เคยถูกสั่งซื้อ → ลบจริงได้อย่างปลอดภัย
+    await prisma.product.delete({ where: { id } });
     res.json({
       success: true,
       message: 'Product deleted successfully'
@@ -203,7 +225,7 @@ const deleteProduct = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete product',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

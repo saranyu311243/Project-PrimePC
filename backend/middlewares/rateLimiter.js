@@ -1,9 +1,12 @@
 const rateLimit = require('express-rate-limit');
 
 // Rate limiter สำหรับ login/register (ป้องกัน brute force)
+// นับเฉพาะ request ที่ล้มเหลว (skipSuccessfulRequests) เพื่อไม่รบกวนการใช้งานปกติ
+// แต่ยังบล็อกการเดารหัสผ่านซ้ำ ๆ ได้
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 นาที
-  max: 5, // จำกัด 5 ครั้งต่อ IP
+  max: 10, // จำกัด 10 ครั้งที่ล้มเหลวต่อ IP
+  skipSuccessfulRequests: true,
   message: {
     success: false,
     message: 'Too many login attempts, please try again after 15 minutes'

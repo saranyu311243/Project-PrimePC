@@ -6,16 +6,19 @@ import App from './App.jsx'
 import CartProvider from './context/CartProvider.jsx'
 import AuthProvider from './context/AuthProvider.jsx'
 import FavoriteProvider from './context/FavoriteProvider.jsx'
+import ProductsProvider from './context/ProductsProvider.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <FavoriteProvider>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </FavoriteProvider>
+        <ProductsProvider>
+          <FavoriteProvider>
+            <CartProvider>
+              <App />
+            </CartProvider>
+          </FavoriteProvider>
+        </ProductsProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,

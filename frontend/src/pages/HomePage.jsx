@@ -16,7 +16,7 @@ import gamingSetImage from '../assets/banners/promo-gaming-set.png'
 import notebookImage from '../assets/banners/promo-notebook.png'
 import { categories } from '../data/categories'
 import { brands } from '../data/brands'
-import { products } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 
 const promotions = [
   {
@@ -65,11 +65,12 @@ const serviceHighlights = [
 
 function HomePage() {
   const [selectedFeaturedCategory, setSelectedFeaturedCategory] = useState('cpu')
+  const { products } = useProducts()
   const homeBrandNames = new Set(brands.map((brand) => brand.id.toUpperCase()))
   const featuredProducts = products.filter(
     (product) =>
       product.category === selectedFeaturedCategory &&
-      homeBrandNames.has(product.brand.toUpperCase()),
+      homeBrandNames.has(product.brand?.toUpperCase()),
   )
   const featuredProductsUrl = `/products?category=${selectedFeaturedCategory}`
 

@@ -11,7 +11,7 @@ import {
   MdRemove,
 } from 'react-icons/md'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { products } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 import { useCart } from '../hooks/useCart'
 import { useFavorites } from '../hooks/useFavorites'
 import { useAuth } from '../hooks/useAuth'
@@ -25,12 +25,12 @@ const serviceHighlights = [
 ]
 
 const getCpuSpecs = (product) => {
-  const isIntel = product.brand.toUpperCase() === 'INTEL'
+  const isIntel = product.brand?.toUpperCase() === 'INTEL'
   const isUltra = product.name.toUpperCase().includes('ULTRA')
   const isRyzen7 = product.name.toUpperCase().includes('RYZEN 7')
 
   return [
-    ['Brand', product.brand.toUpperCase()],
+    ['Brand', product.brand?.toUpperCase() || '-'],
     ['Series', isIntel ? (isUltra ? 'Intel Core Ultra Processors' : 'Intel Core Processors') : 'AMD Ryzen Processors'],
     ['Processor Number', product.name],
     ['Socket Type', isIntel ? (isUltra ? 'LGA 1851' : 'LGA 1700') : 'AM5'],
@@ -54,7 +54,7 @@ const getMotherboardSpecs = (product) => {
   const socket = isIntel ? (['Z890', 'B860', 'H810'].includes(chipset.toUpperCase()) ? 'LGA 1851' : 'LGA 1700') : (['A520', 'B550'].includes(chipset.toUpperCase()) ? 'AM4' : 'AM5')
 
   return [
-    ['Brands', product.brand.toUpperCase()],
+    ['Brands', product.brand?.toUpperCase() || '-'],
     ['CPU Support', isIntel ? 'Intel Core Processors\nIntel Core Ultra Processors' : 'AMD Ryzen 3000 Series\nAMD Ryzen 4000 G-Series\nAMD Ryzen 5000 Series\nAMD Ryzen 7000 / 8000 / 9000 Series'],
     ['CPU Socket', socket],
     ['Chipset', `${isIntel ? 'Intel' : 'AMD'} ${chipset.toUpperCase()}`],
@@ -80,7 +80,7 @@ const getProductSpecs = (product) => {
   if (product.category === 'cpu') return getCpuSpecs(product)
   if (product.category === 'motherboard') return getMotherboardSpecs(product)
 
-  const common = [['Brands', product.brand.toUpperCase()], ['Model', product.name]]
+  const common = [['Brands', product.brand?.toUpperCase() || '-'], ['Model', product.name]]
   const gpuMemory = product.name.match(/\d+GB/i)?.[0] || '8GB'
   const gpuMemoryType = /RTX 50|RX 90/i.test(product.name) ? 'GDDR7' : 'GDDR6'
   const isNvidiaGpu = product.gpuSeries?.toUpperCase().includes('NVIDIA')
@@ -192,12 +192,14 @@ function ProductDetailPage() {
   const [showLoginMessage, setShowLoginMessage] = useState(false)
   const { isFavorite, toggleFavorite } = useFavorites()
   const [quantity, setQuantity] = useState(1)
+  const { products, loading } = useProducts()
   const product = products.find((item) => item.id === Number(id))
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [id])
 
+  if (loading && !product) return <div className="grid min-h-[60vh] place-items-center text-center"><p className="text-lg font-bold text-slate-500">กำลังโหลดข้อมูลสินค้า...</p></div>
   if (!product) return <div className="grid min-h-[60vh] place-items-center text-center"><div><h1 className="text-3xl font-black">ไม่พบสินค้า</h1><Link to="/" className="mt-5 inline-block text-blue-700">กลับหน้า Home</Link></div></div>
 
   const specs = getProductSpecs(product)
@@ -234,7 +236,7 @@ function ProductDetailPage() {
         <div className="min-w-0 px-1 py-1">
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>{product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}</span>
           <div className="mt-4 flex items-start justify-between gap-4"><h1 className="text-xl font-black leading-8 text-slate-900">{product.name}</h1><button type="button" onClick={handleFavorite} className={`grid h-10 w-10 shrink-0 place-items-center rounded-full border border-slate-200 ${favorite ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}>{favorite ? <MdFavorite className="h-5 w-5" /> : <MdFavoriteBorder className="h-5 w-5" />}</button></div>
-          <p className="mt-3 text-sm text-slate-500">แบรนด์: <strong className="text-slate-700">{product.brand.toUpperCase()}</strong><span className="mx-3">|</span>รหัสสินค้า: SKU-{String(product.id).padStart(8, '0')}</p>
+          <p className="mt-3 text-sm text-slate-500">แบรนด์: <strong className="text-slate-700">{product.brand?.toUpperCase() || '-'}</strong><span className="mx-3">|</span>รหัสสินค้า: SKU-{String(product.id).padStart(8, '0')}</p>
           <div className="mt-5 border-t border-slate-300 pt-5"><p className="text-2xl font-black text-slate-900">฿{product.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</p></div>
 
           <div className="mt-6 flex items-center gap-3"><span className="mr-2 text-sm font-bold">จำนวน</span><button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} className="grid h-10 w-10 place-items-center rounded border border-blue-700 text-blue-700"><MdRemove /></button><span className="min-w-8 text-center font-bold">{String(quantity).padStart(2, '0')}</span><button type="button" onClick={() => setQuantity((value) => value + 1)} className="grid h-10 w-10 place-items-center rounded border border-blue-700 text-blue-700"><MdAdd /></button></div>

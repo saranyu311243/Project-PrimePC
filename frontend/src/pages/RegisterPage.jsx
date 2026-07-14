@@ -1,31 +1,50 @@
 import { useState } from 'react'
 import { MdVisibility, MdVisibilityOff } from 'react-icons/md'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 const initialForm = { firstName: '', lastName: '', phone: '', birthDate: '', email: '', password: '', confirmPassword: '', accept: false }
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const { register } = useAuth()
   const [form, setForm] = useState(initialForm)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }))
 
-  const submit = (event) => {
+  const submit = async (event) => {
     event.preventDefault()
     if (!form.firstName || !form.lastName || !form.birthDate || !/^0\d{9}$/.test(form.phone) || !/^\S+@\S+\.\S+$/.test(form.email)) return setMessage('กรุณากรอกชื่อ วันเกิด เบอร์โทรศัพท์ และอีเมลให้ถูกต้อง')
-    if (form.password.length < 6) return setMessage('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร')
+    if (form.password.length < 8) return setMessage('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
     if (form.password !== form.confirmPassword) return setMessage('รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน')
     if (!form.accept) return setMessage('กรุณายอมรับข้อกำหนดการใช้งาน')
-    localStorage.setItem('primepc-profile', JSON.stringify({
-      firstName: form.firstName,
-      lastName: form.lastName,
-      email: form.email,
-      phone: form.phone,
-      birthDate: form.birthDate,
-    }))
-    navigate('/login', { state: { registrationSuccess: true } })
+
+    setSubmitting(true)
+    setMessage('')
+    try {
+      await register({
+        email: form.email,
+        password: form.password,
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        phone: form.phone,
+      })
+      // Keep birthDate locally (backend has no birthDate field).
+      localStorage.setItem('primepc-profile', JSON.stringify({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        birthDate: form.birthDate,
+      }))
+      navigate('/', { state: { registrationSuccess: true } })
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'สมัครสมาชิกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const passwordInput = (field, label, visible, setVisible) => (
@@ -45,7 +64,7 @@ function RegisterPage() {
         <div>{passwordInput('confirmPassword', 'ยืนยันรหัสผ่าน', showConfirmPassword, setShowConfirmPassword)}</div>
         <label className="register-full flex items-start gap-3 border-t border-slate-200 pt-6 text-sm leading-6 text-slate-600"><input type="checkbox" checked={form.accept} onChange={(event) => update('accept', event.target.checked)} className="mt-1 h-4 w-4 accent-blue-700" /><span>ฉันยอมรับข้อกำหนดการใช้งานและนโยบายความเป็นส่วนตัวของ PrimePC</span></label>
         {message && <p className={`register-full rounded-lg px-4 py-3 text-sm ${message.includes('สำเร็จ') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>{message}</p>}
-        <button type="submit" className="register-full rounded-xl bg-blue-700 py-4 font-black text-white hover:bg-blue-800">สมัครสมาชิก</button>
+        <button type="submit" disabled={submitting} className="register-full rounded-xl bg-blue-700 py-4 font-black text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400">{submitting ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}</button>
         <p className="register-full text-center text-sm text-slate-500">มีบัญชีอยู่แล้ว? <Link to="/login" className="font-bold text-blue-700 hover:underline">เข้าสู่ระบบ</Link></p>
       </form>
     </section>

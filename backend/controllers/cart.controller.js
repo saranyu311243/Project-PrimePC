@@ -69,7 +69,7 @@ const getCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to get cart',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -207,7 +207,7 @@ const addToCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to add item to cart',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -289,7 +289,7 @@ const updateCartItem = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update cart item',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -330,7 +330,7 @@ const removeFromCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to remove item from cart',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };
@@ -364,7 +364,7 @@ const clearCart = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to clear cart',
-      error: error.message
+      ...(process.env.NODE_ENV !== 'production' && { error: error.message })
     });
   }
 };

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { MdAdd, MdArrowBack, MdDeleteOutline, MdEdit, MdFavoriteBorder, MdLocationOn, MdLogout, MdPersonOutline, MdSave } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
-import { products } from '../data/products'
+import { useProducts } from '../hooks/useProducts'
 import { useAuth } from '../hooks/useAuth'
 import { useFavorites } from '../hooks/useFavorites'
 import { useCart } from '../hooks/useCart'
@@ -22,6 +22,7 @@ function CustomerProfilePage() {
   const { user, logout, updateUser } = useAuth()
   const { favoriteIds, clearFavorites } = useFavorites()
   const { clearCart } = useCart()
+  const { products } = useProducts()
   const [activeTab, setActiveTab] = useState('profile')
   const [profile, setProfile] = useState(() => readStorage('primepc-profile', { firstName: '', lastName: '', email: user?.email || '', phone: '', birthDate: '' }))
   const [address, setAddress] = useState(() => readStorage('primepc-address', emptyAddress))
@@ -33,11 +34,15 @@ function CustomerProfilePage() {
 
   const updateProfile = (field, value) => setProfile((current) => ({ ...current, [field]: value }))
   const updateAddress = (field, value) => setAddress((current) => ({ ...current, [field]: value }))
-  const saveProfile = (event) => {
+  const saveProfile = async (event) => {
     event.preventDefault()
     localStorage.setItem('primepc-profile', JSON.stringify(profile))
-    updateUser(profile)
-    setMessage('บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว')
+    try {
+      await updateUser(profile)
+      setMessage('บันทึกข้อมูลส่วนตัวเรียบร้อยแล้ว')
+    } catch (error) {
+      setMessage(error.response?.data?.message || 'บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่')
+    }
   }
   const saveAddress = (event) => {
     event.preventDefault()
