@@ -23,7 +23,6 @@ function Footer() {
         {/* แบรนด์ + คำโปรย */}
         <div>
           <div className="flex items-center gap-2">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-sky-500 text-sm font-black text-white">PC</span>
             <p className="text-2xl font-black tracking-tight text-white">
               PRIME<span className="text-sky-400">PC</span>
             </p>
