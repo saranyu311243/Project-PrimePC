@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory, MdDashboard, MdAdminPanelSettings } from 'react-icons/md'
 import { categories } from '../data/categories'
@@ -34,6 +34,40 @@ function Navbar() {
   const [searchText, setSearchText] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('home')
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const searchContainerRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+        setIsSearchFocused(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const searchSuggestions = useMemo(() => {
+    const normalizedSearch = searchText.trim().toLowerCase()
+    if (!normalizedSearch) return []
+    const searchTokens = normalizedSearch.split(/\s+/).filter(Boolean)
+    
+    return products.filter((product) => {
+      if (!homeBrandOptions.includes(product.brand?.toUpperCase())) return false
+      const haystack = [
+        product.name,
+        product.brand,
+        product.description,
+        product.categoryName,
+        product.icon,
+        ...(categorySearchAliases[product.category] ?? []),
+      ].join(' ').toLowerCase()
+      
+      return searchTokens.every((token) => haystack.includes(token))
+    }).slice(0, 5)
+  }, [searchText, products])
   const handleLogout = () => {
     clearCart()
     clearFavorites()
@@ -66,10 +100,16 @@ function Navbar() {
       return searchTokens.every((token) => haystack.includes(token))
     }) : null
     const categoryFromAlias = normalizedSearch ? Object.entries(categorySearchAliases).find(([, aliases]) =>
-      aliases.some((alias) => normalizedSearch.includes(alias.toLowerCase())),
+      aliases.some((alias) => {
+        const lowerAlias = alias.toLowerCase()
+        if (lowerAlias.includes(' ')) {
+          return normalizedSearch.includes(lowerAlias)
+        }
+        return searchTokens.includes(lowerAlias)
+      }),
     )?.[0] : null
     const targetCategory = selectedCategory === 'home'
-      ? matchingProduct?.category || categoryFromAlias || 'cpu'
+      ? categoryFromAlias || matchingProduct?.category || 'cpu'
       : selectedCategory
     const hasMatchingProduct = !normalizedSearch || products.some((product) => {
       if (product.category !== targetCategory) return false
@@ -103,33 +143,60 @@ function Navbar() {
           PRIME<span className="text-sky-300">PC</span>
         </NavLink>
 
-        <form onSubmit={handleSearch} className="order-3 flex w-full overflow-hidden rounded-sm bg-white text-slate-800 lg:order-none lg:flex-1" role="search">
-          <label className="sr-only" htmlFor="product-search">ค้นหาสินค้า</label>
-          <input
-            id="product-search"
-            type="search"
-            value={searchText}
-            onChange={(event) => setSearchText(event.target.value)}
-            placeholder="ค้นหาสินค้าอะไรดี ?"
-            className="min-w-0 flex-1 px-4 py-2.5 text-sm outline-none placeholder:text-slate-400"
-          />
-          <select
-            aria-label="เลือกหมวดหมู่สินค้า"
-            className="hidden border-l border-slate-200 bg-slate-50 px-3 text-xs outline-none md:block"
-            value={selectedCategory}
-            onChange={(event) => setSelectedCategory(event.target.value)}
-          >
-            <option value="home">หมวดหมู่สินค้า</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <button type="submit" className="grid w-12 place-items-center bg-sky-500 text-white transition hover:bg-sky-600" aria-label="ค้นหา">
-            <MdOutlineSearch className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </form>
+        <div ref={searchContainerRef} className="order-3 flex w-full flex-col relative lg:order-none lg:flex-1">
+          <form onSubmit={handleSearch} className="flex w-full overflow-hidden rounded-sm bg-white text-slate-800" role="search">
+            <label className="sr-only" htmlFor="product-search">ค้นหาสินค้า</label>
+            <input
+              id="product-search"
+              type="search"
+              value={searchText}
+              onChange={(event) => setSearchText(event.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              placeholder="ค้นหาสินค้าอะไรดี ?"
+              className="min-w-0 flex-1 px-4 py-2.5 text-sm outline-none placeholder:text-slate-400"
+            />
+            <select
+              aria-label="เลือกหมวดหมู่สินค้า"
+              className="hidden border-l border-slate-200 bg-slate-50 px-3 text-xs outline-none md:block"
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+            >
+              <option value="home">หมวดหมู่สินค้า</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="grid w-12 place-items-center bg-sky-500 text-white transition hover:bg-sky-600" aria-label="ค้นหา">
+              <MdOutlineSearch className="h-6 w-6" aria-hidden="true" />
+            </button>
+          </form>
+          
+          {isSearchFocused && searchText.trim() && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 flex flex-col overflow-hidden rounded-md bg-white shadow-xl border border-slate-200 text-slate-800">
+              {searchSuggestions.length > 0 ? (
+                searchSuggestions.map((product) => (
+                  <button 
+                    key={product.id}
+                    type="button"
+                    onClick={() => {
+                      setSearchText('')
+                      setIsSearchFocused(false)
+                      navigate(`/products/${product.id}`)
+                    }}
+                    className="flex flex-col items-start px-4 py-3 hover:bg-slate-50 text-left border-b border-slate-100 last:border-0"
+                  >
+                    <span className="w-full truncate text-sm font-semibold">{product.name}</span>
+                    <span className="text-xs text-slate-500">{product.brand} - {product.categoryName}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-4 text-center text-sm text-slate-500">ไม่พบสินค้าที่ใกล้เคียง</div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="relative ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
           <Link to="/contact" className="hidden items-center gap-2 text-white hover:text-sky-200 sm:flex">

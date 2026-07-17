@@ -25,12 +25,20 @@ const getAllProducts = async (req, res) => {
       if (maxPrice) where.price.lte = parseFloat(maxPrice);
     }
 
-    // Search by name or description
+    // Advanced Search: Split by spaces and search across multiple fields
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ];
+      const searchTerms = search.trim().split(/\s+/).filter(term => term.length > 0);
+      if (searchTerms.length > 0) {
+        where.AND = searchTerms.map(term => ({
+          OR: [
+            { name: { contains: term, mode: 'insensitive' } },
+            { description: { contains: term, mode: 'insensitive' } },
+            { category: { contains: term, mode: 'insensitive' } },
+            { categoryName: { contains: term, mode: 'insensitive' } },
+            { brand: { contains: term, mode: 'insensitive' } }
+          ]
+        }));
+      }
     }
 
     // Only show available products
