@@ -197,7 +197,7 @@ function Navbar() {
             </div>
           )}
         </div>
-
+ {/* กดฟหก */}
         <div className="relative ml-auto flex shrink-0 items-center gap-3 sm:gap-5">
           <Link to="/contact" className="hidden items-center gap-2 text-white hover:text-sky-200 sm:flex">
             <MdContactSupport className="h-6 w-6" aria-hidden="true" />

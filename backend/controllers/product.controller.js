@@ -212,7 +212,7 @@ const deleteProduct = async (req, res) => {
     const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
 
     if (orderItemCount > 0) {
-      // มีประวัติการสั่งซื้อ → soft-delete: ปิดการขายแทนการลบจริง
+      // มีประวัติการสั่งซื้อ → soft-delete: ปิดการขายแทนการลบจริงง
       await prisma.product.update({
         where: { id },
         data: { isAvailable: false }
