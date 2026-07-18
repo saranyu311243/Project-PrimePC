@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
 const verifyToken = require('../middlewares/verifyToken');
-const { authLimiter } = require('../middlewares/rateLimiter');
-const { validateRegister, validateLogin, sanitizeInput } = require('../middlewares/validateInput');
+const { authLimiter, registerLimiter } = require('../middlewares/rateLimiter');
+const { validateRegister, validateLogin, validateProfileUpdate, sanitizeInput } = require('../middlewares/validateInput');
 
 /**
  * @swagger
@@ -32,7 +32,7 @@ const { validateRegister, validateLogin, sanitizeInput } = require('../middlewar
  *       201:
  *         description: User registered successfully
  */
-router.post('/register', authLimiter, sanitizeInput, validateRegister, authController.register);
+router.post('/register', registerLimiter, sanitizeInput, validateRegister, authController.register);
 
 /**
  * @swagger
@@ -96,6 +96,6 @@ router.get('/profile', verifyToken, authController.getProfile);
  *       200:
  *         description: Profile updated successfully
  */
-router.put('/profile', verifyToken, sanitizeInput, authController.updateProfile);
+router.put('/profile', verifyToken, sanitizeInput, validateProfileUpdate, authController.updateProfile);
 
 module.exports = router;

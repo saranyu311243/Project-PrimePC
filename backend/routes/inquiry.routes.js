@@ -110,7 +110,7 @@ router.get('/:id', verifyToken, inquiryController.getInquiryById);
  *       200:
  *         description: Inquiry responded
  */
-router.put('/:id/respond', verifyToken, checkRole('STAFF', 'ADMIN'), inquiryController.respondInquiry);
+router.put('/:id/respond', verifyToken, checkRole('STAFF', 'ADMIN'), sanitizeInput, inquiryController.respondInquiry);
 
 /**
  * @swagger

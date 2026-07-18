@@ -4,10 +4,13 @@ import ReactApexChart from 'react-apexcharts'
 import {
   MdGroup, MdReceiptLong, MdPayments, MdPendingActions, MdRefresh,
   MdTrendingUp, MdBarChart, MdDashboard, MdAdminPanelSettings,
-  MdDeleteOutline, MdSwapHoriz, MdCandlestickChart,
+  MdDeleteOutline, MdSwapHoriz, MdCandlestickChart, MdInventory2,
+  MdAdd, MdEdit, MdCheckCircle, MdSearch,
 } from 'react-icons/md'
 import { useAuth } from '../hooks/useAuth'
 import { getDashboard, getAllUsers, updateUserRole, deleteUser, getSalesReport } from '../services/adminService'
+import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
+import ProductModal from '../components/ProductModal'
 
 const money = (value) => `฿${Number(value || 0).toLocaleString('th-TH')}`
 const ROLES = ['CUSTOMER', 'STAFF', 'ADMIN']
@@ -17,6 +20,19 @@ const roleBadge = {
   STAFF: 'bg-blue-100 text-blue-700 border border-blue-200',
   CUSTOMER: 'bg-slate-100 text-slate-600 border border-slate-200',
 }
+
+const CATEGORY_TH = {
+  cpu: 'ซีพียู', motherboard: 'เมนบอร์ด', gpu: 'การ์ดจอ', ram: 'แรม',
+  storage: 'อุปกรณ์จัดเก็บข้อมูล', psu: 'พาวเวอร์ซัพพลาย', cooling: 'ระบายความร้อน',
+  notebook: 'โน้ตบุ๊ก', monitor: 'จอมอนิเตอร์', keyboard: 'คีย์บอร์ด',
+  mouse: 'เมาส์', accessory: 'อุปกรณ์เสริม', case: 'เคส', headset: 'หูฟัง',
+}
+
+const PRODUCT_CATEGORIES = [
+  'cpu', 'motherboard', 'gpu', 'ram', 'storage', 'psu',
+  'cooling', 'notebook', 'monitor', 'keyboard', 'mouse',
+  'accessory', 'case', 'headset',
+]
 
 const statCards = [
   {
@@ -72,85 +88,103 @@ function StatCard({ icon: Icon, label, value, gradient, bg, text }) {
   )
 }
 
-/** สร้างข้อมูลสำหรับ Bar chart จากรายได้รวมและข้อมูลที่มี */
-function buildChartData(totalRevenue, totalOrders) {
-  const data = []
+const PAID_STATUSES = ['PROCESSING', 'SHIPPING', 'DELIVERED']
+const CANCELLED_STATUS = 'CANCELLED'
+
+/** รวมยอดขายจริงรายวัน (7 วันล่าสุด) แยกเป็นชำระแล้ว/รอดำเนินการ/ยกเลิก จากออเดอร์จริง */
+function buildDailyRevenueSeries(orders) {
+  const days = []
   const today = new Date()
-  const baseRevenue = (totalRevenue ?? 0) / 30 || 5000
-
-  // สร้าง 30 วันย้อนหลัง
-  let prevClose = baseRevenue * (0.8 + Math.random() * 0.4)
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today)
-    date.setDate(today.getDate() - i)
-    const ts = date.getTime()
-
-    // วันหยุด (เสาร์-อาทิตย์) ยอดขายน้อยลง
-    const isWeekend = date.getDay() === 0 || date.getDay() === 6
-    const multiplier = isWeekend ? 0.5 : 1
-
-    // ใช้ seed จากวันที่เพื่อให้ผลลัพธ์ stable
-    const seed = (date.getDate() + date.getMonth() * 31) % 100
-    const volatility = 0.08 + (seed % 10) * 0.01
-
-    const open = prevClose
-    const change = (Math.random() - 0.48) * volatility * baseRevenue * multiplier
-    const close = Math.max(open + change, baseRevenue * 0.2)
-
-    data.push({ x: ts, y: Math.round(close) })
-    prevClose = close
+  today.setHours(0, 0, 0, 0)
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(today.getDate() - i)
+    days.push(d)
   }
-  return data
+
+  const paid = days.map(() => 0)
+  const pending = days.map(() => 0)
+  const cancelled = days.map(() => 0)
+
+  for (const order of orders ?? []) {
+    const orderDate = new Date(order.createdAt)
+    orderDate.setHours(0, 0, 0, 0)
+    const idx = days.findIndex((d) => d.getTime() === orderDate.getTime())
+    if (idx === -1) continue
+
+    const amount = Number(order.totalAmount || 0)
+    if (order.status === CANCELLED_STATUS) cancelled[idx] += amount
+    else if (PAID_STATUSES.includes(order.status)) paid[idx] += amount
+    else pending[idx] += amount
+  }
+
+  const categories = days.map((d) => d.getTime())
+  return { categories, paid, pending, cancelled }
 }
 
-function RevenueBarChart({ totalRevenue, totalOrders, loading }) {
-  const series = useMemo(
-    () => [{ name: 'ยอดขาย (฿)', data: buildChartData(totalRevenue, totalOrders) }],
-    [totalRevenue, totalOrders]
-  )
+// Categorical slots 1/2/3 from the validated palette (fixed order — see references/palette.md),
+// checked with scripts/validate_palette.js for this exact 3-series combination.
+const CHART_COLORS = ['#2a78d6', '#008300', '#e87ba4']
+
+function RevenueTrendChart({ orders, loading }) {
+  const { categories, paid, pending, cancelled } = useMemo(() => buildDailyRevenueSeries(orders), [orders])
+
+  const series = [
+    { name: 'ชำระแล้ว', data: paid },
+    { name: 'รอดำเนินการ', data: pending },
+    { name: 'ยกเลิก', data: cancelled },
+  ]
 
   const options = {
     chart: {
-      type: 'bar',
+      type: 'area',
       height: 380,
       toolbar: { show: true, tools: { download: true, zoom: true, zoomin: true, zoomout: true, pan: true, reset: true } },
       background: 'transparent',
       animations: { enabled: true, easing: 'easeinout', speed: 600 },
     },
-    title: { text: undefined },
+    colors: CHART_COLORS,
+    stroke: { curve: 'smooth', width: 2 },
+    fill: {
+      type: 'gradient',
+      gradient: { shadeIntensity: 1, opacityFrom: 0.35, opacityTo: 0.05, stops: [0, 90, 100] },
+    },
+    markers: { size: 5, strokeWidth: 2, strokeColors: '#fcfcfb', hover: { size: 7 } },
+    dataLabels: {
+      enabled: true,
+      formatter: (val) => Math.round(val).toLocaleString('th-TH'),
+      style: { fontSize: '11px', fontWeight: 700, colors: ['#fff'] },
+      background: { enabled: true, borderRadius: 8, padding: 6, opacity: 1, borderWidth: 0 },
+      offsetY: -4,
+    },
+    legend: {
+      show: true,
+      position: 'top',
+      horizontalAlign: 'right',
+      labels: { colors: '#52514e' },
+      markers: { size: 6 },
+    },
     xaxis: {
       type: 'datetime',
+      categories,
       labels: {
-        formatter: (val) => new Date(val).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }),
-        style: { colors: '#64748b', fontSize: '11px' },
+        formatter: (val) => new Date(val).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+        style: { colors: '#898781', fontSize: '11px' },
       },
-      axisBorder: { color: '#e2e8f0' },
-      axisTicks: { color: '#e2e8f0' },
+      axisBorder: { color: '#c3c2b7' },
+      axisTicks: { color: '#c3c2b7' },
     },
     yaxis: {
       labels: {
         formatter: (val) => `฿${Number(val).toLocaleString('th-TH', { maximumFractionDigits: 0 })}`,
-        style: { colors: '#64748b', fontSize: '11px' },
-      },
-      tooltip: { enabled: true },
-    },
-    plotOptions: {
-      bar: {
-        borderRadius: 4,
-        columnWidth: '60%',
+        style: { colors: '#898781', fontSize: '11px' },
       },
     },
-    colors: ['#3b82f6'],
-    dataLabels: {
-      enabled: false,
-    },
-    grid: { borderColor: '#f1f5f9', strokeDashArray: 4, xaxis: { lines: { show: false } } },
+    grid: { borderColor: '#e1e0d9', strokeDashArray: 4, xaxis: { lines: { show: false } } },
     tooltip: {
       theme: 'light',
       x: { formatter: (val) => new Date(val).toLocaleDateString('th-TH', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) },
-      y: {
-        formatter: (val) => `฿${Number(val).toLocaleString('th-TH')}`,
-      },
+      y: { formatter: (val) => `฿${Number(val).toLocaleString('th-TH')}` },
     },
   }
 
@@ -168,7 +202,7 @@ function RevenueBarChart({ totalRevenue, totalOrders, loading }) {
     <ReactApexChart
       options={options}
       series={series}
-      type="bar"
+      type="area"
       height={380}
     />
   )
@@ -179,23 +213,35 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [sales, setSales] = useState(null)
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [activeTab, setActiveTab] = useState('users')
+  const [userSearch, setUserSearch] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all')
+
+  // Product modal state
+  const [modalOpen, setModalOpen] = useState(false)
+  const [editProduct, setEditProduct] = useState(null)
+  const [productBusy, setProductBusy] = useState(false)
+  const [productSuccess, setProductSuccess] = useState('')
 
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const [dashboard, userList, salesData] = await Promise.all([
+      const [dashboard, userList, salesData, productList] = await Promise.all([
         getDashboard(),
         getAllUsers({ limit: 100 }),
         getSalesReport().catch(() => null),
+        fetchProducts({ limit: 200 }),
       ])
       setStats(dashboard)
       setUsers(userList.users)
       setSales(salesData)
+      setProducts(productList.products)
     } catch (err) {
       setError(err.response?.data?.message || 'โหลดข้อมูลแดชบอร์ดไม่สำเร็จ')
     } finally {
@@ -234,6 +280,63 @@ function AdminDashboard() {
     }
   }
 
+  // Product CRUD
+  const handleSaveProduct = async (form) => {
+    setProductBusy(true)
+    setProductSuccess('')
+    try {
+      const payload = {
+        ...form,
+        price: Number(form.price),
+        stock: Number(form.stock ?? 0),
+      }
+      if (form.id) {
+        const updated = await updateProduct(form.id, payload)
+        setProducts((cur) => cur.map((p) => (p.id === form.id ? updated : p)))
+      } else {
+        const created = await createProduct(payload)
+        setProducts((cur) => [created, ...cur])
+      }
+      setModalOpen(false)
+      setEditProduct(null)
+      setProductSuccess(form.id ? 'อัปเดตสินค้าเรียบร้อย' : 'เพิ่มสินค้าเรียบร้อย')
+      setTimeout(() => setProductSuccess(''), 3000)
+    } catch (err) {
+      setError(err.response?.data?.message || 'บันทึกสินค้าไม่สำเร็จ')
+    } finally {
+      setProductBusy(false)
+    }
+  }
+
+  const handleDeleteProduct = async (id, name) => {
+    if (!window.confirm(`ยืนยันการลบสินค้า "${name}"? การกระทำนี้ไม่สามารถย้อนกลับได้`)) return
+    try {
+      await deleteProduct(id)
+      setProducts((cur) => cur.filter((p) => p.id !== id))
+    } catch (err) {
+      setError(err.response?.data?.message || 'ลบสินค้าไม่สำเร็จ')
+    }
+  }
+
+  const filteredUsers = useMemo(() => {
+    const q = userSearch.trim().toLowerCase()
+    if (!q) return users
+    return users.filter((u) => u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q))
+  }, [users, userSearch])
+
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase()
+    return products
+      .filter((p) => productCategoryFilter === 'all' || p.category === productCategoryFilter)
+      .filter((p) => !q || p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q))
+  }, [products, productSearch, productCategoryFilter])
+
+  const productCountByCategory = useMemo(() => {
+    const counts = {}
+    for (const p of products) counts[p.category] = (counts[p.category] ?? 0) + 1
+    return counts
+  }, [products])
+
   const tabBtn = (id, label, Icon) => (
     <button
       onClick={() => setActiveTab(id)}
@@ -246,7 +349,6 @@ function AdminDashboard() {
   )
 
   const totalRevenue = stats?.totalRevenue ?? sales?.totalRevenue ?? 0
-  const totalOrders = stats?.totalOrders ?? 0
 
   return (
     <div className="rounded-3xl bg-slate-100 p-6 sm:p-8">
@@ -279,6 +381,11 @@ function AdminDashboard() {
         </header>
 
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100">{error}</p>}
+        {productSuccess && (
+          <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 border border-emerald-100">
+            <MdCheckCircle className="h-5 w-5" />{productSuccess}
+          </p>
+        )}
 
         {/* ── Stat Cards ── */}
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -306,26 +413,38 @@ function AdminDashboard() {
               <p className="mt-1 text-sm text-slate-500">ติดตามยอดขาย 30 วันล่าสุดแบบรายวัน</p>
             </div>
           </div>
-          <RevenueBarChart totalRevenue={totalRevenue} totalOrders={totalOrders} loading={loading} />
+          <RevenueTrendChart orders={sales?.orders} loading={loading} />
         </section>
 
         {/* ── Tabs ── */}
         <div className="flex flex-wrap gap-3">
           {tabBtn('users', 'จัดการผู้ใช้', MdGroup)}
           {tabBtn('sales', 'รายงานยอดขาย', MdBarChart)}
+          {tabBtn('products', 'จัดการสินค้า', MdInventory2)}
         </div>
 
         {/* ── Users Tab ── */}
         {activeTab === 'users' && (
           <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black text-slate-900">จัดการผู้ใช้</h2>
                 <p className="mt-1 text-sm text-slate-500">เปลี่ยนสิทธิ์การเข้าถึงหรือลบผู้ใช้ออกจากระบบ</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                {loading ? '—' : `${users.length} คน`}
-              </span>
+              <div className="flex items-center gap-3">
+                <label className="relative">
+                  <MdSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="ค้นหาชื่อหรืออีเมล..."
+                    className="w-56 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-sky-500"
+                  />
+                </label>
+                <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                  {loading ? '—' : `${filteredUsers.length} คน`}
+                </span>
+              </div>
             </div>
 
             {loading ? (
@@ -349,7 +468,7 @@ function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((u) => (
+                    {filteredUsers.map((u) => (
                       <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                         <td className="py-3 pr-4 font-bold text-slate-900">{u.name || `ผู้ใช้ #${u.id}`}</td>
                         <td className="py-3 pr-4 text-slate-500">{u.email}</td>
@@ -361,7 +480,7 @@ function AdminDashboard() {
                         <td className="py-3 pr-4">
                           <select
                             value={u.role}
-                            disabled={busyId === u.id || u.id === user?.id}
+                            disabled={busyId === u.id || u.id === user?.id || u.role === 'ADMIN'}
                             onChange={(e) => changeRole(u.id, e.target.value)}
                             className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-blue-600 disabled:bg-slate-100 disabled:cursor-not-allowed"
                           >
@@ -371,19 +490,21 @@ function AdminDashboard() {
                         <td className="py-3">
                           <button
                             onClick={() => removeUser(u.id)}
-                            disabled={busyId === u.id || u.id === user?.id}
+                            disabled={busyId === u.id || u.id === user?.id || u.role === 'ADMIN'}
                             className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 transition"
                           >
                             <MdDeleteOutline className="h-4 w-4" />
-                            {u.id === user?.id ? 'บัญชีคุณ' : 'ลบ'}
+                            {u.id === user?.id ? 'บัญชีคุณ' : u.role === 'ADMIN' ? 'แอดมิน' : 'ลบ'}
                           </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {users.length === 0 && (
-                  <p className="py-8 text-center text-sm text-slate-400">ไม่พบผู้ใช้ในระบบ</p>
+                {filteredUsers.length === 0 && (
+                  <p className="py-8 text-center text-sm text-slate-400">
+                    {userSearch ? 'ไม่พบผู้ใช้ที่ตรงกับคำค้นหา' : 'ไม่พบผู้ใช้ในระบบ'}
+                  </p>
                 )}
               </div>
             )}
@@ -461,7 +582,140 @@ function AdminDashboard() {
             )}
           </section>
         )}
+
+        {/* ── Products Tab ── */}
+        {activeTab === 'products' && (
+          <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">จัดการสินค้า</h2>
+                <p className="mt-1 text-sm text-slate-500">เพิ่ม แก้ไข หรือลบสินค้าออกจากระบบ</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="relative">
+                  <MdSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    placeholder="ค้นหาชื่อหรือแบรนด์..."
+                    className="w-56 rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-sky-500"
+                  />
+                </label>
+                <button
+                  onClick={() => { setEditProduct(null); setModalOpen(true) }}
+                  className="flex shrink-0 items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-800 transition"
+                >
+                  <MdAdd className="h-5 w-5" />เพิ่มสินค้าใหม่
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setProductCategoryFilter('all')}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${productCategoryFilter === 'all' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                ทั้งหมด ({products.length})
+              </button>
+              {PRODUCT_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setProductCategoryFilter(c)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition ${productCategoryFilter === c ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                >
+                  {CATEGORY_TH[c]} ({productCountByCategory[c] ?? 0})
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div className="mt-6 space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-12 animate-pulse rounded-xl bg-slate-100" />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500">
+                      <th className="pb-3 pr-4 font-semibold">รูป</th>
+                      <th className="pb-3 pr-4 font-semibold">สินค้า</th>
+                      <th className="pb-3 pr-4 font-semibold">หมวดหมู่</th>
+                      <th className="pb-3 pr-4 font-semibold">ราคา</th>
+                      <th className="pb-3 pr-4 font-semibold">สต็อก</th>
+                      <th className="pb-3 pr-4 font-semibold">สถานะ</th>
+                      <th className="pb-3 font-semibold">จัดการ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((p) => (
+                      <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td className="py-3 pr-4">
+                          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                            {p.image_url ? (
+                              <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400">{p.icon}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <p className="font-bold text-slate-900 line-clamp-1">{p.name}</p>
+                          <p className="text-xs text-slate-400">{p.brand}</p>
+                        </td>
+                        <td className="py-3 pr-4 text-slate-600">{CATEGORY_TH[p.category] ?? p.category}</td>
+                        <td className="py-3 pr-4 font-semibold text-blue-800">{money(p.price)}</td>
+                        <td className="py-3 pr-4">
+                          <span className={`font-semibold ${p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-slate-700'}`}>
+                            {p.stockQuantity}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${p.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
+                            {p.inStock ? 'เปิดขาย' : 'ปิดขาย'}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => { setEditProduct(p); setModalOpen(true) }}
+                              className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition"
+                            >
+                              <MdEdit className="h-3.5 w-3.5" />แก้ไข
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(p.id, p.name)}
+                              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 transition"
+                            >
+                              <MdDeleteOutline className="h-3.5 w-3.5" />ลบ
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredProducts.length === 0 && (
+                  <p className="py-8 text-center text-sm text-slate-400">
+                    {productSearch || productCategoryFilter !== 'all' ? 'ไม่พบสินค้าที่ตรงกับเงื่อนไข' : 'ไม่พบสินค้าในระบบ'}
+                  </p>
+                )}
+              </div>
+            )}
+          </section>
+        )}
       </div>
+
+      {/* Product Modal */}
+      {modalOpen && (
+        <ProductModal
+          initial={editProduct}
+          onSave={handleSaveProduct}
+          onClose={() => { setModalOpen(false); setEditProduct(null) }}
+          busy={productBusy}
+        />
+      )}
     </div>
   )
 }

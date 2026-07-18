@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { parsePositiveInt } = require('../lib/validation');
 
 // Get user's cart
 const getCart = async (req, res) => {
@@ -78,13 +79,21 @@ const getCart = async (req, res) => {
 const addToCart = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { productId, quantity = 1 } = req.body;
+    const { productId: rawProductId, quantity = 1 } = req.body;
 
     // Validation
-    if (!productId) {
+    if (!rawProductId) {
       return res.status(400).json({
         success: false,
         message: 'productId is required'
+      });
+    }
+
+    const productId = parsePositiveInt(rawProductId);
+    if (productId === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid productId'
       });
     }
 
@@ -105,7 +114,7 @@ const addToCart = async (req, res) => {
 
     // ตรวจสอบว่าสินค้ามีอยู่จริง
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(productId) }
+      where: { id: productId }
     });
 
     if (!product) {
@@ -146,7 +155,7 @@ const addToCart = async (req, res) => {
       where: {
         cartId_productId: {
           cartId: cart.id,
-          productId: parseInt(productId)
+          productId: productId
         }
       }
     });
@@ -188,7 +197,7 @@ const addToCart = async (req, res) => {
       cartItem = await prisma.cartItem.create({
         data: {
           cartId: cart.id,
-          productId: parseInt(productId),
+          productId: productId,
           quantity: parsedQuantity
         },
         include: {
@@ -216,7 +225,13 @@ const addToCart = async (req, res) => {
 const updateCartItem = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { itemId } = req.params;
+    const itemId = parsePositiveInt(req.params.itemId);
+    if (itemId === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid item id'
+      });
+    }
     const { quantity } = req.body;
 
     // Validation
@@ -238,7 +253,7 @@ const updateCartItem = async (req, res) => {
     // ตรวจสอบว่า item นี้เป็นของ user หรือไม่
     const cartItem = await prisma.cartItem.findFirst({
       where: {
-        id: parseInt(itemId),
+        id: itemId,
         cart: {
           userId
         }
@@ -272,7 +287,7 @@ const updateCartItem = async (req, res) => {
     }
 
     const updatedItem = await prisma.cartItem.update({
-      where: { id: parseInt(itemId) },
+      where: { id: itemId },
       data: { quantity: parsedQuantity },
       include: {
         product: true
@@ -298,12 +313,18 @@ const updateCartItem = async (req, res) => {
 const removeFromCart = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { itemId } = req.params;
+    const itemId = parsePositiveInt(req.params.itemId);
+    if (itemId === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid item id'
+      });
+    }
 
     // ตรวจสอบว่า item นี้เป็นของ user หรือไม่
     const cartItem = await prisma.cartItem.findFirst({
       where: {
-        id: parseInt(itemId),
+        id: itemId,
         cart: {
           userId
         }
@@ -318,7 +339,7 @@ const removeFromCart = async (req, res) => {
     }
 
     await prisma.cartItem.delete({
-      where: { id: parseInt(itemId) }
+      where: { id: itemId }
     });
 
     res.json({

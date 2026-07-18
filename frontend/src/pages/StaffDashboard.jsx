@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MdRefresh, MdLocalShipping, MdPaid, MdQuestionAnswer, MdInventory2, MdAdd, MdEdit, MdDeleteOutline, MdClose, MdCheckCircle, MdSave } from 'react-icons/md'
+import { MdRefresh, MdLocalShipping, MdPaid, MdQuestionAnswer, MdInventory2, MdAdd, MdEdit, MdDeleteOutline, MdCheckCircle } from 'react-icons/md'
 import { getOrders, updateOrderStatus } from '../services/orderService'
 import { confirmPayment } from '../services/paymentService'
 import { createShipment, updateShipmentStatus } from '../services/shipmentService'
 import { getAllInquiries, respondInquiry, closeInquiry } from '../services/inquiryService'
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
+import ProductModal from '../components/ProductModal'
 
 const money = (value) => `฿${Number(value || 0).toLocaleString('th-TH')}`
 
@@ -38,150 +39,11 @@ const statusColor = {
 const fmtDate = (value) =>
   value ? new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 
-const PRODUCT_CATEGORIES = [
-  'cpu', 'motherboard', 'gpu', 'ram', 'storage', 'psu',
-  'cooling', 'notebook', 'monitor', 'keyboard', 'mouse',
-  'accessory', 'case', 'headset',
-]
-
 const CATEGORY_TH = {
   cpu: 'ซีพียู', motherboard: 'เมนบอร์ด', gpu: 'การ์ดจอ', ram: 'แรม',
   storage: 'อุปกรณ์จัดเก็บข้อมูล', psu: 'พาวเวอร์ซัพพลาย', cooling: 'ระบายความร้อน',
   notebook: 'โน้ตบุ๊ก', monitor: 'จอมอนิเตอร์', keyboard: 'คีย์บอร์ด',
   mouse: 'เมาส์', accessory: 'อุปกรณ์เสริม', case: 'เคส', headset: 'หูฟัง',
-}
-
-const EMPTY_PRODUCT = {
-  name: '', brand: '', category: 'cpu', price: '', stock: '',
-  description: '', imageUrl: '', isAvailable: true,
-}
-
-function ProductModal({ initial, onSave, onClose, busy }) {
-  const [form, setForm] = useState(initial ?? EMPTY_PRODUCT)
-  const update = (field, value) => setForm((c) => ({ ...c, [field]: value }))
-  const isEdit = Boolean(initial?.id)
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-black text-slate-900">
-            {isEdit ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่'}
-          </h2>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
-            <MdClose className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="grid gap-4 p-6 sm:grid-cols-2">
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">ชื่อสินค้า *</span>
-            <input
-              value={form.name}
-              onChange={(e) => update('name', e.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-              placeholder="เช่น Intel Core i9-14900K"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-semibold text-slate-700">แบรนด์ *</span>
-            <input
-              value={form.brand}
-              onChange={(e) => update('brand', e.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-              placeholder="เช่น Intel, ASUS"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-semibold text-slate-700">หมวดหมู่</span>
-            <select
-              value={form.category}
-              onChange={(e) => update('category', e.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-            >
-              {PRODUCT_CATEGORIES.map((c) => (
-                <option key={c} value={c}>{CATEGORY_TH[c] ?? c}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-semibold text-slate-700">ราคา (บาท) *</span>
-            <input
-              type="number"
-              min="0"
-              value={form.price}
-              onChange={(e) => update('price', e.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-              placeholder="0"
-            />
-          </label>
-
-          <label className="block">
-            <span className="text-sm font-semibold text-slate-700">สต็อก (ชิ้น)</span>
-            <input
-              type="number"
-              min="0"
-              value={form.stock}
-              onChange={(e) => update('stock', e.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-              placeholder="0"
-            />
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">URL รูปภาพ</span>
-            <input
-              value={form.imageUrl}
-              onChange={(e) => update('imageUrl', e.target.value)}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-              placeholder="https://..."
-            />
-          </label>
-
-          <label className="block sm:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">คำอธิบาย</span>
-            <textarea
-              value={form.description}
-              onChange={(e) => update('description', e.target.value)}
-              rows={3}
-              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-sky-500"
-              placeholder="รายละเอียดสินค้า"
-            />
-          </label>
-
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              checked={form.isAvailable}
-              onChange={(e) => update('isAvailable', e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 accent-blue-600"
-            />
-            <span className="text-sm font-semibold text-slate-700">แสดงสินค้า (เปิดขาย)</span>
-          </label>
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4">
-          <button onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">
-            ยกเลิก
-          </button>
-          <button
-            onClick={() => onSave(form)}
-            disabled={busy || !form.name || !form.brand || !form.price}
-            className="flex items-center gap-2 rounded-xl bg-blue-700 px-5 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-          >
-            <MdSave className="h-4 w-4" />
-            {busy ? 'กำลังบันทึก...' : 'บันทึก'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 function StaffDashboard() {
@@ -573,6 +435,7 @@ function StaffDashboard() {
               <table className="w-full min-w-[640px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500">
+                    <th className="pb-3 pr-4 font-semibold">รูป</th>
                     <th className="pb-3 pr-4 font-semibold">สินค้า</th>
                     <th className="pb-3 pr-4 font-semibold">หมวดหมู่</th>
                     <th className="pb-3 pr-4 font-semibold">ราคา</th>
@@ -584,6 +447,15 @@ function StaffDashboard() {
                 <tbody>
                   {products.map((p) => (
                     <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
+                      <td className="py-3 pr-4">
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400">{p.icon}</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 pr-4">
                         <p className="font-bold text-slate-900 line-clamp-1">{p.name}</p>
                         <p className="text-xs text-slate-400">{p.brand}</p>
@@ -620,7 +492,7 @@ function StaffDashboard() {
                   ))}
                   {products.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-sm text-slate-400">ไม่พบสินค้าในระบบ</td>
+                      <td colSpan={7} className="py-8 text-center text-sm text-slate-400">ไม่พบสินค้าในระบบ</td>
                     </tr>
                   )}
                 </tbody>

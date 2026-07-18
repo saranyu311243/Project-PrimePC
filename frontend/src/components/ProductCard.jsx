@@ -84,10 +84,16 @@ function ProductCard({ product, variant = 'default' }) {
           <span className={`absolute left-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>
             {product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}
           </span>
-          <div className="absolute h-36 w-36 rounded-full bg-sky-300/30 blur-2xl" />
-          <div className="relative grid h-28 w-36 place-items-center border border-blue-200 bg-gradient-to-br from-slate-900 to-blue-900 text-2xl font-black tracking-wider text-sky-300 shadow-xl transition duration-300 group-hover:scale-105">
-            {product.icon}
-          </div>
+          {product.image_url ? (
+            <img src={product.image_url} alt={product.name} className="relative h-full w-full object-contain transition duration-300 group-hover:scale-105" />
+          ) : (
+            <>
+              <div className="absolute h-36 w-36 rounded-full bg-sky-300/30 blur-2xl" />
+              <div className="relative grid h-28 w-36 place-items-center border border-blue-200 bg-gradient-to-br from-slate-900 to-blue-900 text-2xl font-black tracking-wider text-sky-300 shadow-xl transition duration-300 group-hover:scale-105">
+                {product.icon}
+              </div>
+            </>
+          )}
         </div>
       </Link>
 

@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const { v4: uuidv4 } = require('uuid');
+const { parsePositiveInt } = require('../lib/validation');
 
 // Valid payment methods
 const validPaymentMethods = ['credit_card', 'bank_transfer', 'paypal', 'qr_code'];
@@ -26,7 +27,8 @@ const createPayment = async (req, res) => {
       });
     }
 
-    if (!orderId) {
+    const orderIdInt = parsePositiveInt(orderId);
+    if (orderIdInt === null) {
       return res.status(400).json({
         success: false,
         message: 'orderId is required'
@@ -49,7 +51,7 @@ const createPayment = async (req, res) => {
 
     // Get order with full details
     const order = await prisma.order.findUnique({
-      where: { id: parseInt(orderId) },
+      where: { id: orderIdInt },
       include: {
         payment: true
       }
@@ -70,12 +72,18 @@ const createPayment = async (req, res) => {
       });
     }
 
-    // Check if payment already exists
+    // Check if payment already exists — a FAILED payment is not in-flight or
+    // completed, so it must not permanently block ever paying for this order
+    // again. Clear it out (Payment.orderId is unique, so the old row has to
+    // go before a new one can be created) and let the customer retry.
     if (order.payment) {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment already exists for this order'
-      });
+      if (order.payment.status !== 'FAILED') {
+        return res.status(400).json({
+          success: false,
+          message: 'Payment already exists for this order'
+        });
+      }
+      await prisma.payment.delete({ where: { id: order.payment.id } });
     }
 
     // Validate amount matches order total
@@ -141,10 +149,13 @@ const createPayment = async (req, res) => {
 // Get payment by order ID
 const getPaymentByOrder = async (req, res) => {
   try {
-    const { orderId } = req.params;
+    const orderId = parsePositiveInt(req.params.orderId);
+    if (orderId === null) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
 
     const payment = await prisma.payment.findUnique({
-      where: { orderId: parseInt(orderId) },
+      where: { orderId },
       include: {
         order: {
           select: {
@@ -189,11 +200,15 @@ const getPaymentByOrder = async (req, res) => {
 // Confirm payment (สำหรับ admin/staff หรือ webhook จาก payment gateway)
 const confirmPayment = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid payment id' });
+    }
+
     const { status = 'SUCCESS' } = req.body;
 
     // Validate status
-    if (!validPaymentStatuses.includes(status)) {
+    if (typeof status !== 'string' || !validPaymentStatuses.includes(status)) {
       return res.status(400).json({
         success: false,
         message: `Invalid status. Must be one of: ${validPaymentStatuses.join(', ')}`
@@ -202,7 +217,7 @@ const confirmPayment = async (req, res) => {
 
     // Get payment with order
     const currentPayment = await prisma.payment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id },
       include: {
         order: true
       }
@@ -225,7 +240,7 @@ const confirmPayment = async (req, res) => {
 
     // Update payment status
     const payment = await prisma.payment.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: { status }
     });
 

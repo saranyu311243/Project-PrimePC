@@ -66,7 +66,9 @@ const validateProduct = (req, res, next) => {
   }
 
   // ตรวจสอบว่า price และ stock เป็นตัวเลข
-  if (isNaN(price) || isNaN(stock)) {
+  const isValidNumber = (v) => (typeof v === 'number' || typeof v === 'string') && v !== '' && Number.isFinite(Number(v));
+
+  if (!isValidNumber(price) || !isValidNumber(stock)) {
     return res.status(400).json({
       success: false,
       message: 'Price and stock must be numbers'
@@ -74,7 +76,7 @@ const validateProduct = (req, res, next) => {
   }
 
   // ตรวจสอบว่า price และ stock เป็นค่าบวก
-  if (parseFloat(price) < 0 || parseInt(stock) < 0) {
+  if (Number(price) < 0 || Number(stock) < 0) {
     return res.status(400).json({
       success: false,
       message: 'Price and stock must be positive numbers'
@@ -107,10 +109,11 @@ const validateCartItem = (req, res, next) => {
 };
 
 const sanitizeInput = (req, res, next) => {
-  // ป้องกัน XSS โดยการ trim และลบ script tags
+  // ป้องกัน XSS โดยการ trim และลบ HTML tag ทั้งหมด (ไม่ใช่แค่ <script>...</script> —
+  // การไล่ blacklist แค่ pattern เดียวหลุดง่ายมาก เช่น <img onerror=...>, <svg onload=...>)
   const sanitize = (obj) => {
     if (typeof obj === 'string') {
-      return obj.trim().replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      return obj.trim().replace(/<[^>]*>/g, '');
     }
     if (typeof obj === 'object' && obj !== null) {
       Object.keys(obj).forEach(key => {
@@ -124,10 +127,36 @@ const sanitizeInput = (req, res, next) => {
   next();
 };
 
+// Update endpoint ใช้ partial update ได้ (field ไหนไม่ส่งมาก็ไม่ต้องแตะ) แต่ field
+// ที่ส่งมาต้องผ่านกฎเดียวกับตอน register — ห้ามเซ็ตชื่อว่าง/เบอร์โทรผิดรูปแบบ
+const validateProfileUpdate = (req, res, next) => {
+  const { name, phone } = req.body;
+
+  if (name !== undefined && !String(name).trim()) {
+    return res.status(400).json({
+      success: false,
+      message: 'Name cannot be empty'
+    });
+  }
+
+  if (phone) {
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(String(phone).replace(/-/g, ''))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format (must be 10 digits)'
+      });
+    }
+  }
+
+  next();
+};
+
 module.exports = {
   validateRegister,
   validateLogin,
   validateProduct,
   validateCartItem,
+  validateProfileUpdate,
   sanitizeInput
 };

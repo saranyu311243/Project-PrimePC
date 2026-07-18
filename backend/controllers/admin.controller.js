@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { parsePositiveInt, parsePagination, parseOptionalDate } = require('../lib/validation');
 
 // รายได้จริงนับเฉพาะออเดอร์ที่ผ่านการชำระเงินแล้ว (ไม่รวม PENDING/CANCELLED)
 const REVENUE_STATUSES = ['PROCESSING', 'SHIPPING', 'DELIVERED'];
@@ -23,19 +24,21 @@ const getDashboard = async (req, res) => {
 };
 
 // Get all users
+// เห็นเฉพาะ STAFF/ADMIN เท่านั้น — ไม่โชว์ลูกค้า (CUSTOMER) ในหน้าจัดการผู้ใช้ของแอดมิน
 const getAllUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query);
+    const where = { role: { in: ['STAFF', 'ADMIN'] } };
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
+        where,
         select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
-        skip: parseInt(skip),
-        take: parseInt(limit),
+        skip,
+        take: limit,
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.user.count()
+      prisma.user.count({ where })
     ]);
 
     res.json({
@@ -43,9 +46,9 @@ const getAllUsers = async (req, res) => {
       data: users,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit))
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
       }
     });
   } catch (error) {
@@ -54,18 +57,37 @@ const getAllUsers = async (req, res) => {
 };
 
 // Update user role
+// แอดมินแก้ยศ staff ได้ แต่แก้ยศ admin คนอื่น (หรือตัวเอง) ผ่าน endpoint นี้ไม่ได้
 const updateUserRole = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid user id' });
+    }
     const { role } = req.body;
 
     if (!['CUSTOMER', 'STAFF', 'ADMIN'].includes(role)) {
       return res.status(400).json({ success: false, message: 'Invalid role' });
     }
 
-    const user = await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: { role },
+    // Atomic conditional update — the role check and the write happen in a single
+    // SQL statement, so a concurrent promotion to ADMIN can't slip through between
+    // a separate read-then-write (TOCTOU race).
+    const { count } = await prisma.user.updateMany({
+      where: { id, role: { not: 'ADMIN' } },
+      data: { role }
+    });
+
+    if (count === 0) {
+      const targetUser = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+      if (!targetUser) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      return res.status(403).json({ success: false, message: 'Cannot change another admin\'s role' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id },
       select: { id: true, email: true, name: true, role: true }
     });
 
@@ -78,14 +100,19 @@ const updateUserRole = async (req, res) => {
 // Get sales report
 const getSalesReport = async (req, res) => {
   try {
-    const { startDate, endDate, page = 1, limit = 50 } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 50 });
+
+    const startDate = parseOptionalDate(req.query.startDate);
+    const endDate = parseOptionalDate(req.query.endDate);
+    if (startDate === null || endDate === null) {
+      return res.status(400).json({ success: false, message: 'Invalid startDate or endDate' });
+    }
 
     const where = {};
-    if (startDate || endDate) {
+    if (startDate !== undefined || endDate !== undefined) {
       where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate);
+      if (startDate !== undefined) where.createdAt.gte = startDate;
+      if (endDate !== undefined) where.createdAt.lte = endDate;
     }
 
     const [orders, total, revenueAgg] = await Promise.all([
@@ -93,7 +120,7 @@ const getSalesReport = async (req, res) => {
         where,
         include: { orderItems: { include: { product: true } }, user: { select: { id: true, name: true, email: true } } },
         skip,
-        take: parseInt(limit),
+        take: limit,
         orderBy: { createdAt: 'desc' }
       }),
       prisma.order.count({ where }),
@@ -112,10 +139,10 @@ const getSalesReport = async (req, res) => {
         totalOrders: total,
         totalRevenue,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
+          page,
+          limit,
           total,
-          totalPages: Math.ceil(total / parseInt(limit))
+          totalPages: Math.ceil(total / limit)
         }
       }
     });
@@ -125,16 +152,32 @@ const getSalesReport = async (req, res) => {
 };
 
 // Delete user
+// เหมือน updateUserRole — แอดมินลบ staff ได้ แต่ลบ admin คนอื่น (หรือตัวเอง) ไม่ได้
 const deleteUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid user id' });
+    }
 
     // Prevent deleting yourself
-    if (req.user.id === parseInt(id)) {
+    if (req.user.id === id) {
       return res.status(400).json({ success: false, message: 'Cannot delete yourself' });
     }
 
-    await prisma.user.delete({ where: { id: parseInt(id) } });
+    // Atomic conditional delete — same TOCTOU-safe pattern as updateUserRole,
+    // so a concurrent promotion to ADMIN can't slip through between a
+    // separate read-then-delete.
+    const { count } = await prisma.user.deleteMany({ where: { id, role: { not: 'ADMIN' } } });
+
+    if (count === 0) {
+      const targetUser = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+      if (!targetUser) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      return res.status(403).json({ success: false, message: 'Cannot delete another admin' });
+    }
+
     res.json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to delete user', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });

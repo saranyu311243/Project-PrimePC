@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { parsePositiveInt, parsePagination } = require('../lib/validation');
 
 // Valid inquiry statuses
 const validInquiryStatuses = ['PENDING', 'RESPONDED', 'CLOSED'];
@@ -94,10 +95,13 @@ const getInquiries = async (req, res) => {
 // Get inquiry by ID
 const getInquiryById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid inquiry id' });
+    }
 
     const inquiry = await prisma.inquiry.findUnique({
-      where: { id: parseInt(id) },
+      where: { id },
       include: {
         user: {
           select: {
@@ -142,8 +146,8 @@ const getInquiryById = async (req, res) => {
 // Get all inquiries (Staff/Admin only)
 const getAllInquiries = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
-    const skip = (page - 1) * limit;
+    const { status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query);
 
     const where = {};
     if (status && validInquiryStatuses.includes(status)) {
@@ -163,8 +167,8 @@ const getAllInquiries = async (req, res) => {
             }
           }
         },
-        skip: parseInt(skip),
-        take: parseInt(limit),
+        skip,
+        take: limit,
         orderBy: { createdAt: 'desc' }
       }),
       prisma.inquiry.count({ where })
@@ -175,8 +179,8 @@ const getAllInquiries = async (req, res) => {
       data: inquiries,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         totalPages: Math.ceil(total / limit)
       }
     });
@@ -193,7 +197,10 @@ const getAllInquiries = async (req, res) => {
 // Respond to inquiry (Staff/Admin only)
 const respondInquiry = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid inquiry id' });
+    }
     const { response } = req.body;
 
     if (!response || !response.trim()) {
@@ -211,7 +218,7 @@ const respondInquiry = async (req, res) => {
     }
 
     const currentInquiry = await prisma.inquiry.findUnique({
-      where: { id: parseInt(id) }
+      where: { id }
     });
 
     if (!currentInquiry) {
@@ -229,7 +236,7 @@ const respondInquiry = async (req, res) => {
     }
 
     const inquiry = await prisma.inquiry.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: {
         response: response.trim(),
         status: 'RESPONDED'
@@ -254,10 +261,13 @@ const respondInquiry = async (req, res) => {
 // Close inquiry (Staff/Admin only)
 const closeInquiry = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid inquiry id' });
+    }
 
     const currentInquiry = await prisma.inquiry.findUnique({
-      where: { id: parseInt(id) }
+      where: { id }
     });
 
     if (!currentInquiry) {
@@ -275,7 +285,7 @@ const closeInquiry = async (req, res) => {
     }
 
     const inquiry = await prisma.inquiry.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: { status: 'CLOSED' }
     });
 

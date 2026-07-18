@@ -17,6 +17,10 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn("WARNING: SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY not set — product image upload is disabled");
+}
+
 const app = express();
 
 // Security Middleware
@@ -115,10 +119,12 @@ const paymentRoutes = require("./routes/payment.routes");
 const shipmentRoutes = require("./routes/shipment.routes");
 const inquiryRoutes = require("./routes/inquiry.routes");
 const adminRoutes = require("./routes/admin.routes");
+const uploadRoutes = require("./routes/upload.routes");
 
 // Use Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/product-images", uploadRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
@@ -156,6 +162,10 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+// Bucket setup runs in the background so a Storage hiccup never blocks the API from serving.
+require("./lib/supabaseStorage").ensureBucket()
+  .catch((err) => console.error("Failed to ensure product-images bucket:", err.message));
 
 app.listen(PORT, () => {
   console.log(`Server Running on Port ${PORT}`);

@@ -1,15 +1,35 @@
 const prisma = require('../lib/prisma');
+const { parsePositiveInt, parsePagination } = require('../lib/validation');
 
 // Valid shipment statuses
 const validShipmentStatuses = ['PREPARING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'];
 
+// Forward-only shipment lifecycle. Nothing transitions back into PREPARING,
+// and CANCELLED/DELIVERED are terminal — this also prevents order.status
+// from ever desyncing from shipment.status via an illegal backward move.
+const SHIPMENT_STATUS_TRANSITIONS = {
+  PREPARING: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['IN_TRANSIT', 'DELIVERED', 'CANCELLED'],
+  IN_TRANSIT: ['DELIVERED', 'CANCELLED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+const ORDER_STATUS_FOR_SHIPMENT = {
+  SHIPPED: 'SHIPPING',
+  IN_TRANSIT: 'SHIPPING',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED',
+};
+
 // Create shipment (Staff/Admin only)
 const createShipment = async (req, res) => {
   try {
-    const { orderId, trackingNumber } = req.body;
+    const { trackingNumber } = req.body;
+    const orderId = parsePositiveInt(req.body.orderId);
 
     // Validation
-    if (!orderId) {
+    if (orderId === null) {
       return res.status(400).json({
         success: false,
         message: 'orderId is required'
@@ -18,7 +38,7 @@ const createShipment = async (req, res) => {
 
     // Check if order exists
     const order = await prisma.order.findUnique({
-      where: { id: parseInt(orderId) },
+      where: { id: orderId },
       include: {
         shipment: true,
         payment: true
@@ -67,7 +87,7 @@ const createShipment = async (req, res) => {
     const shipment = await prisma.$transaction(async (tx) => {
       const newShipment = await tx.shipment.create({
         data: {
-          orderId: parseInt(orderId),
+          orderId,
           trackingNumber: trackingNumber || `TRACK-${Date.now()}`,
           status: 'PREPARING'
         }
@@ -75,7 +95,7 @@ const createShipment = async (req, res) => {
 
       // Update order status to SHIPPING
       await tx.order.update({
-        where: { id: parseInt(orderId) },
+        where: { id: orderId },
         data: { status: 'SHIPPING' }
       });
 
@@ -100,7 +120,11 @@ const createShipment = async (req, res) => {
 // Update shipment status (Staff/Admin only)
 const updateShipmentStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid shipment id' });
+    }
+
     const { status } = req.body;
 
     // Validate status
@@ -113,7 +137,7 @@ const updateShipmentStatus = async (req, res) => {
 
     // Get current shipment
     const currentShipment = await prisma.shipment.findUnique({
-      where: { id: parseInt(id) },
+      where: { id },
       include: {
         order: true
       }
@@ -126,11 +150,14 @@ const updateShipmentStatus = async (req, res) => {
       });
     }
 
-    // Business logic: cannot update cancelled shipment
-    if (currentShipment.status === 'CANCELLED') {
+    // Business logic: only allow legal forward transitions (also covers the
+    // old "cannot update a cancelled shipment" rule, since CANCELLED has no
+    // allowed next states).
+    const allowedNext = SHIPMENT_STATUS_TRANSITIONS[currentShipment.status] || [];
+    if (!allowedNext.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot update cancelled shipment'
+        message: `Cannot transition shipment from ${currentShipment.status} to ${status}`
       });
     }
 
@@ -146,19 +173,14 @@ const updateShipmentStatus = async (req, res) => {
     // Update shipment and sync order status
     const result = await prisma.$transaction(async (tx) => {
       const shipment = await tx.shipment.update({
-        where: { id: parseInt(id) },
+        where: { id },
         data
       });
 
-      // Sync order status based on shipment status
-      let orderStatus = currentShipment.order.status;
-      if (status === 'SHIPPED' || status === 'IN_TRANSIT') {
-        orderStatus = 'SHIPPING';
-      } else if (status === 'DELIVERED') {
-        orderStatus = 'DELIVERED';
-      } else if (status === 'CANCELLED') {
-        orderStatus = 'CANCELLED';
-      }
+      // Sync order status based on shipment status — exhaustive over every
+      // reachable target status (see ORDER_STATUS_FOR_SHIPMENT), so order
+      // and shipment status can never silently drift apart again.
+      const orderStatus = ORDER_STATUS_FOR_SHIPMENT[status] ?? currentShipment.order.status;
 
       await tx.order.update({
         where: { id: shipment.orderId },
@@ -186,10 +208,13 @@ const updateShipmentStatus = async (req, res) => {
 // Get shipment by order ID
 const getShipmentByOrderId = async (req, res) => {
   try {
-    const { orderId } = req.params;
+    const orderId = parsePositiveInt(req.params.orderId);
+    if (orderId === null) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
 
     const shipment = await prisma.shipment.findUnique({
-      where: { orderId: parseInt(orderId) },
+      where: { orderId },
       include: {
         order: {
           select: {
@@ -235,8 +260,8 @@ const getShipmentByOrderId = async (req, res) => {
 // Get all shipments (Staff/Admin only)
 const getAllShipments = async (req, res) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
-    const skip = (page - 1) * limit;
+    const { status } = req.query;
+    const { page, limit, skip } = parsePagination(req.query);
 
     const where = {};
     if (status && validShipmentStatuses.includes(status)) {
@@ -260,8 +285,8 @@ const getAllShipments = async (req, res) => {
             }
           }
         },
-        skip: parseInt(skip),
-        take: parseInt(limit),
+        skip,
+        take: limit,
         orderBy: { createdAt: 'desc' }
       }),
       prisma.shipment.count({ where })
@@ -272,8 +297,8 @@ const getAllShipments = async (req, res) => {
       data: shipments,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         totalPages: Math.ceil(total / limit)
       }
     });

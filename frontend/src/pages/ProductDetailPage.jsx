@@ -24,6 +24,13 @@ const serviceHighlights = [
   { title: 'ชำระเงินปลอดภัย', detail: 'มั่นใจด้วยระบบชำระเงินออนไลน์', icon: MdOutlineVerifiedUser },
 ]
 
+// Prefers a real value the admin entered in Product.specs (see data/productSpecFields.js);
+// falls back to the previous brand/name-derived guess when that spec field is unset.
+const pick = (product, key, fallback) => {
+  const value = product[key]
+  return value !== undefined && value !== null && value !== '' ? value : fallback
+}
+
 const getCpuSpecs = (product) => {
   const isIntel = product.brand?.toUpperCase() === 'INTEL'
   const isUltra = product.name.toUpperCase().includes('ULTRA')
@@ -31,19 +38,19 @@ const getCpuSpecs = (product) => {
 
   return [
     ['Brand', product.brand?.toUpperCase() || '-'],
-    ['Series', isIntel ? (isUltra ? 'Intel Core Ultra Processors' : 'Intel Core Processors') : 'AMD Ryzen Processors'],
+    ['Series', pick(product, 'cpuSeries', isIntel ? (isUltra ? 'Intel Core Ultra Processors' : 'Intel Core Processors') : 'AMD Ryzen Processors')],
     ['Processor Number', product.name],
-    ['Socket Type', isIntel ? (isUltra ? 'LGA 1851' : 'LGA 1700') : 'AM5'],
-    ['Cores / Threads', isRyzen7 ? '8 Cores / 16 Threads' : isIntel ? '20 Cores / 20 Threads' : '6 Cores / 12 Threads'],
-    ['Base Frequency', isIntel ? '3.3 GHz' : '3.8 GHz'],
-    ['Max Turbo Frequency', isIntel ? '5.5 GHz' : '5.4 GHz'],
-    ['L2 Cache', isIntel ? '40 MB' : '8 MB'],
-    ['L3 Cache', isIntel ? '30 MB Smart Cache' : '32 MB'],
-    ['Graphics Model', isIntel ? 'Intel Graphics' : 'AMD Radeon Graphics'],
-    ['CPU Cooler', 'N/A'],
-    ['Default TDP', isIntel ? '125W' : '65W'],
-    ['Maximum Turbo Power', isIntel ? '250W' : '120W'],
-    ['Warranty', '3 Years'],
+    ['Socket Type', pick(product, 'cpuSocket', isIntel ? (isUltra ? 'LGA 1851' : 'LGA 1700') : 'AM5')],
+    ['Cores / Threads', pick(product, 'cpuCoresThreads', isRyzen7 ? '8 Cores / 16 Threads' : isIntel ? '20 Cores / 20 Threads' : '6 Cores / 12 Threads')],
+    ['Base Frequency', pick(product, 'cpuBaseFreq', isIntel ? '3.3 GHz' : '3.8 GHz')],
+    ['Max Turbo Frequency', pick(product, 'cpuMaxTurboFreq', isIntel ? '5.5 GHz' : '5.4 GHz')],
+    ['L2 Cache', pick(product, 'cpuL2Cache', isIntel ? '40 MB' : '8 MB')],
+    ['L3 Cache', pick(product, 'cpuL3Cache', isIntel ? '30 MB Smart Cache' : '32 MB')],
+    ['Graphics Model', pick(product, 'cpuGraphics', isIntel ? 'Intel Graphics' : 'AMD Radeon Graphics')],
+    ['CPU Cooler', pick(product, 'cpuCooler', 'N/A')],
+    ['Default TDP', pick(product, 'cpuTdp', isIntel ? '125W' : '65W')],
+    ['Maximum Turbo Power', pick(product, 'cpuMaxTurboPower', isIntel ? '250W' : '120W')],
+    ['Warranty', pick(product, 'warranty', '3 Years')],
   ]
 }
 
@@ -56,10 +63,10 @@ const getMotherboardSpecs = (product) => {
   return [
     ['Brands', product.brand?.toUpperCase() || '-'],
     ['CPU Support', isIntel ? 'Intel Core Processors\nIntel Core Ultra Processors' : 'AMD Ryzen 3000 Series\nAMD Ryzen 4000 G-Series\nAMD Ryzen 5000 Series\nAMD Ryzen 7000 / 8000 / 9000 Series'],
-    ['CPU Socket', socket],
+    ['CPU Socket', pick(product, 'cpuSocket', socket)],
     ['Chipset', `${isIntel ? 'Intel' : 'AMD'} ${chipset.toUpperCase()}`],
-    ['Memory Slots', '2 x DIMM'],
-    ['Memory Type', isDdr5 ? 'DDR5' : 'DDR4'],
+    ['Memory Slots', pick(product, 'memorySlots', '2 x DIMM')],
+    ['Memory Type', pick(product, 'memoryTypeSupport', isDdr5 ? 'DDR5' : 'DDR4')],
     ['Max Memory', isDdr5 ? '128GB' : '64GB'],
     ['Onboard Graphics', 'Integrated Graphics on supported Processor'],
     ['Onboard Audio Chipset', 'Realtek 7.1 Channel HD Audio'],
@@ -71,8 +78,8 @@ const getMotherboardSpecs = (product) => {
     ['LAN Speed', '10/100/1000/2500 Mbps'],
     ['Dimensions', '24.4 cm x 24.4 cm'],
     ['Power Pin', '24+8 Pin'],
-    ['Form Factor', 'Micro-ATX'],
-    ['Warranty', '3 Years'],
+    ['Form Factor', pick(product, 'formFactor', 'Micro-ATX')],
+    ['Warranty', pick(product, 'warranty', '3 Years')],
   ]
 }
 
@@ -91,45 +98,51 @@ const getProductSpecs = (product) => {
     gpu: [
       ['GPU Series', product.gpuSeries || 'Graphics Processor Series'],
       ['GPU Model', product.gpuModel || product.name],
-      ['Memory Size', `${gpuMemory} ${gpuMemoryType}`],
+      ['Memory Size', pick(product, 'memorySize', `${gpuMemory} ${gpuMemoryType}`)],
       ['Bus Standards', 'PCI Express 4.0 x16'],
       ['OpenGL', 'OpenGL 4.6'],
       [isNvidiaGpu ? 'CUDA® Cores' : isAmdGpu ? 'Stream Processors' : 'Xe Cores', isNvidiaGpu ? '6144' : isAmdGpu ? '4096' : '160'],
-      ['Memory Interface', `${Number.parseInt(gpuMemory, 10) >= 16 ? '256' : '192'}-bit`],
+      ['Memory Interface', pick(product, 'memoryInterface', `${Number.parseInt(gpuMemory, 10) >= 16 ? '256' : '192'}-bit`)],
       ['Boost Clock', isNvidiaGpu ? '2610 MHz (OC mode)' : isAmdGpu ? '2970 MHz' : '2670 MHz'],
       ['Memory Clock', gpuMemoryType === 'GDDR7' ? '28.0 Gbps' : '18.0 Gbps'],
       ['Max Digital Resolution', '7680 x 4320'],
       ['HDMI Port', '1 x HDMI 2.1'],
       ['Display Port', '3 x DisplayPort 1.4a'],
-      ['Power Connector', Number.parseInt(gpuMemory, 10) >= 16 ? '1 x 16-pin' : '1 x 8-pin'],
+      ['Power Connector', pick(product, 'powerConnector', Number.parseInt(gpuMemory, 10) >= 16 ? '1 x 16-pin' : '1 x 8-pin')],
       ['Power Requirement', `${Number.parseInt(gpuMemory, 10) >= 24 ? 1000 : Number.parseInt(gpuMemory, 10) >= 16 ? 750 : 650} Watt`],
       ['Dimension', '300 x 120 x 50 mm'],
     ],
     ram: [
       ['Memory Capacity', product.memoryCapacity || '16GB'],
       ['Memory Type', product.memoryType || 'DDR5'],
-      ['Speed', product.name.match(/\d{4}MHz/i)?.[0] || '5600MHz'],
+      ['Speed', pick(product, 'speed', product.name.match(/\d{4}MHz/i)?.[0] || '5600MHz')],
       ['Module', product.memoryCapacity?.includes('x2') ? 'Dual Channel Kit' : 'Single Module'],
       ['Voltage', product.memoryType === 'DDR4' ? '1.35V' : '1.25V'],
     ],
     storage: [
-      ['Storage Type', product.icon === 'HDD' ? 'Hard Disk Drive' : 'Solid State Drive'],
-      ['Capacity', product.name.match(/\d+(?:GB|TB)/i)?.[0] || '1TB'],
-      ['Interface', product.name.toUpperCase().includes('NVME') ? 'M.2 PCIe NVMe' : product.icon === 'HDD' ? 'SATA 6Gb/s' : 'SATA III'],
-      ['Form Factor', product.name.toUpperCase().includes('M.2') ? 'M.2 2280' : product.icon === 'HDD' ? '3.5 inch' : '2.5 inch'],
+      ['Storage Type', pick(product, 'storageType', product.icon === 'HDD' ? 'Hard Disk Drive' : 'Solid State Drive')],
+      ['Capacity', pick(product, 'capacity', product.name.match(/\d+(?:GB|TB)/i)?.[0] || '1TB')],
+      ['Interface', pick(product, 'interface', product.name.toUpperCase().includes('NVME') ? 'M.2 PCIe NVMe' : product.icon === 'HDD' ? 'SATA 6Gb/s' : 'SATA III')],
+      ['Form Factor', pick(product, 'formFactor', product.name.toUpperCase().includes('M.2') ? 'M.2 2280' : product.icon === 'HDD' ? '3.5 inch' : '2.5 inch')],
     ],
     psu: [
       ['Continuous Power', `${product.continuousPower || 650} Watt`],
-      ['Efficiency Rating', product.name.match(/80\+\s*\w+/i)?.[0] || '80 Plus Bronze'],
+      ['Efficiency Rating', pick(product, 'efficiencyRating', product.name.match(/80\+\s*\w+/i)?.[0] || '80 Plus Bronze')],
+      ['Modular', pick(product, 'modular', '-')],
       ['Power Standard', 'ATX'],
       ['Input Voltage', '100-240V AC'],
       ['Cooling Fan', '120mm Fan'],
     ],
-    cooling: [['Cooling Type', product.icon === 'AIO' ? 'Liquid Cooling' : 'Air Cooling'], ['Radiator / Fan Size', product.name.match(/\d+mm/i)?.[0] || '120mm'], ['Lighting', 'ARGB'], ['Socket Support', 'Intel LGA / AMD AM4, AM5']],
+    cooling: [
+      ['Cooling Type', pick(product, 'coolingType', product.icon === 'AIO' ? 'Liquid Cooling' : 'Air Cooling')],
+      ['Radiator / Fan Size', pick(product, 'radiatorFanSize', product.name.match(/\d+mm/i)?.[0] || '120mm')],
+      ['Lighting', pick(product, 'lighting', 'ARGB')],
+      ['Socket Support', 'Intel LGA / AMD AM4, AM5'],
+    ],
     notebook: [
-      ['Processors', isGamingNotebook ? 'Intel® Core™ i7 High Performance Processor' : isCreatorNotebook ? 'Intel® Core™ Ultra 7 Processor' : 'Intel® Core™ i5 Processor'],
+      ['Processors', pick(product, 'processor', isGamingNotebook ? 'Intel® Core™ i7 High Performance Processor' : isCreatorNotebook ? 'Intel® Core™ Ultra 7 Processor' : 'Intel® Core™ i5 Processor')],
       ['Processor Speed', isGamingNotebook ? 'Up to 5.0GHz, 24MB Intel Smart Cache' : 'Up to 4.6GHz, 12MB Intel Smart Cache'],
-      ['Video Graphics', isGamingNotebook ? 'NVIDIA® GeForce RTX™ Graphics' : isCreatorNotebook ? 'Intel® Arc™ Graphics' : 'Intel® UHD Graphics (Integrated Graphics)'],
+      ['Video Graphics', pick(product, 'graphics', isGamingNotebook ? 'NVIDIA® GeForce RTX™ Graphics' : isCreatorNotebook ? 'Intel® Arc™ Graphics' : 'Intel® UHD Graphics (Integrated Graphics)')],
       ['Screen Size', product.notebookScreenSize || '15.6"'],
       ['Display', isCreatorNotebook ? 'OLED 2.8K, 100% DCI-P3 color gamut' : isGamingNotebook ? 'FHD IPS, 144Hz, Anti-glare' : 'FHD IPS, Anti-glare display'],
       ['Memory', `${product.notebookMemory || '16GB'} DDR5 SO-DIMM`],
@@ -146,7 +159,7 @@ const getProductSpecs = (product) => {
     monitor: [
       ['Display Size (in.)', product.monitorDisplaySize || '27"'],
       ['Panel Size (in.)', product.monitorDisplaySize || '27"'],
-      ['Panel Type', 'IPS'],
+      ['Panel Type', pick(product, 'panelType', 'IPS')],
       ['Resolution', product.monitorResolution || '1920 x 1080'],
       ['Resolution Type', product.monitorResolution === '3840 x 2160' ? '4K UHD' : product.monitorResolution === '2560 x 1440' ? 'QHD' : 'Full HD'],
       ['Display Viewing Area (H x V)', product.monitorDisplaySize === '32"' ? '708.5 x 398.5 mm' : product.monitorDisplaySize === '24"' ? '527.0 x 296.5 mm' : '596.7 x 335.7 mm'],
@@ -174,14 +187,38 @@ const getProductSpecs = (product) => {
       ['Weight (Esti.)', 'Net Weight 6.55 kg'],
       ['Accessory in Box', '1 x HDMI Cable\n1 x DisplayPort Cable\n1 x Power Cord\n1 x Quick Start Guide\n4 x VESA Wall Mount Screw'],
     ],
-    keyboard: [['Keyboard Type', 'Gaming Keyboard'], ['Switch Type', 'Mechanical'], ['Interface', 'USB'], ['Lighting', 'RGB']],
-    mouse: [['Mouse Type', 'Gaming Mouse'], ['Connection', product.name.toUpperCase().includes('WIRELESS') ? 'Wireless' : 'USB'], ['Sensor', 'Optical Sensor'], ['DPI', 'Up to 12,000 DPI']],
-    accessory: [['Product Type', 'Computer Accessory'], ['Interface', 'USB Type-C'], ['Color', 'Black']],
-    case: [['Case Type', 'Mid Tower'], ['Mainboard Support', 'ATX / Micro-ATX / Mini-ITX'], ['Front I/O', 'USB 3.0 / USB 2.0 / Audio'], ['Cooling Support', '120mm / 140mm Fan']],
-    headset: [['Headset Type', 'Gaming Headset'], ['Connection', '3.5mm / USB'], ['Microphone', 'Built-in Microphone'], ['Sound', 'Stereo / Virtual Surround']],
+    keyboard: [
+      ['Keyboard Type', pick(product, 'keyboardType', 'Gaming Keyboard')],
+      ['Switch Type', pick(product, 'switchType', 'Mechanical')],
+      ['Interface', pick(product, 'interface', 'USB')],
+      ['Lighting', pick(product, 'lighting', 'RGB')],
+    ],
+    mouse: [
+      ['Mouse Type', pick(product, 'mouseType', 'Gaming Mouse')],
+      ['Connection', pick(product, 'connection', product.name.toUpperCase().includes('WIRELESS') ? 'Wireless' : 'USB')],
+      ['Sensor', pick(product, 'sensor', 'Optical Sensor')],
+      ['DPI', pick(product, 'dpi', 'Up to 12,000 DPI')],
+    ],
+    accessory: [
+      ['Product Type', pick(product, 'productType', 'Computer Accessory')],
+      ['Interface', pick(product, 'interface', 'USB Type-C')],
+      ['Color', pick(product, 'color', 'Black')],
+    ],
+    case: [
+      ['Case Type', pick(product, 'caseType', 'Mid Tower')],
+      ['Mainboard Support', pick(product, 'mainboardSupport', 'ATX / Micro-ATX / Mini-ITX')],
+      ['Front I/O', pick(product, 'frontIO', 'USB 3.0 / USB 2.0 / Audio')],
+      ['Cooling Support', '120mm / 140mm Fan'],
+    ],
+    headset: [
+      ['Headset Type', pick(product, 'headsetType', 'Gaming Headset')],
+      ['Connection', pick(product, 'connection', '3.5mm / USB')],
+      ['Microphone', pick(product, 'microphone', 'Built-in Microphone')],
+      ['Sound', pick(product, 'sound', 'Stereo / Virtual Surround')],
+    ],
   }
 
-  return [...common, ...(categorySpecs[product.category] || [['Category', product.categoryName]]), ['Warranty', '3 Years']]
+  return [...common, ...(categorySpecs[product.category] || [['Category', product.categoryName]]), ['Warranty', pick(product, 'warranty', '3 Years')]]
 }
 
 function ProductDetailPage() {

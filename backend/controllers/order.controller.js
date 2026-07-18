@@ -1,7 +1,32 @@
 const prisma = require('../lib/prisma');
+const { parsePositiveInt, parsePagination } = require('../lib/validation');
 
 // Validate order status enum
 const validOrderStatuses = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPING', 'DELIVERED', 'CANCELLED'];
+
+// Forward-only order lifecycle. CANCELLED is reachable from any
+// non-terminal state; nothing is reachable from a terminal state.
+const ORDER_STATUS_TRANSITIONS = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['SHIPPING', 'CANCELLED'],
+  SHIPPING: ['DELIVERED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+// Restores stock for every item in an order, inside the given transaction.
+// Shared by cancelOrder and updateOrderStatus(->CANCELLED) so the two
+// cancellation paths can never drift out of sync (one used to skip this).
+async function restoreOrderStock(tx, orderId) {
+  const items = await tx.orderItem.findMany({ where: { orderId } });
+  for (const item of items) {
+    await tx.product.update({
+      where: { id: item.productId },
+      data: { stock: { increment: item.quantity } }
+    });
+  }
+}
 
 // Create order with proper validation and transaction
 const createOrder = async (req, res) => {
@@ -36,32 +61,42 @@ const createOrder = async (req, res) => {
     const validatedItems = [];
 
     for (const item of items) {
-      // ตรวจสอบว่ามี productId และ quantity
-      if (!item.productId || !item.quantity) {
+      const productId = parsePositiveInt(item.productId);
+      if (productId === null) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid productId: ${item.productId}`
+        });
+      }
+
+      if (item.quantity === undefined || item.quantity === null || item.quantity === '') {
         return res.status(400).json({
           success: false,
           message: 'Each item must have productId and quantity'
         });
       }
 
-      const quantity = parseInt(item.quantity);
-      if (quantity <= 0) {
+      // Strict integer check — a fractional string like "2.9" must be
+      // rejected, not silently floored to 2 (that would silently bill/reserve
+      // less than what parseInt-truncation implied to the client).
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Quantity must be greater than 0'
+          message: 'Quantity must be a positive integer'
         });
       }
 
       // ดึงข้อมูลสินค้าจริงจาก database
       const product = await prisma.product.findUnique({
-        where: { id: parseInt(item.productId) }
+        where: { id: productId }
       });
 
       // ตรวจสอบว่าสินค้ามีอยู่จริง
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `Product ID ${item.productId} not found`
+          message: `Product ID ${productId} not found`
         });
       }
 
@@ -131,10 +166,12 @@ const createOrder = async (req, res) => {
         }
       }
 
-      // 3. ล้างตะกร้าของผู้ใช้หลังสั่งซื้อสำเร็จ (ถ้ามี)
+      // 3. ล้างเฉพาะรายการที่สั่งซื้อออกจากตะกร้า (ไม่แตะสินค้าอื่นที่ยังไม่ได้สั่ง)
       const cart = await tx.cart.findFirst({ where: { userId: parseInt(userId) } });
       if (cart) {
-        await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+        await tx.cartItem.deleteMany({
+          where: { cartId: cart.id, productId: { in: validatedItems.map((i) => i.productId) } }
+        });
       }
 
       return { order, items: orderItems };
@@ -169,15 +206,17 @@ const createOrder = async (req, res) => {
 // Get all orders or user's orders
 const getAllOrders = async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20));
-    const skip = (page - 1) * limit;
+    const { page, limit, skip } = parsePagination(req.query);
 
     let where = {};
     if (req.user && req.user.role === 'CUSTOMER') {
       where.userId = req.user.id;
     } else if (req.query.userId) {
-      where.userId = parseInt(req.query.userId);
+      const filterUserId = parsePositiveInt(req.query.userId);
+      if (filterUserId === null) {
+        return res.status(400).json({ success: false, message: 'Invalid userId' });
+      }
+      where.userId = filterUserId;
     }
 
     const [orders, total] = await Promise.all([
@@ -192,7 +231,7 @@ const getAllOrders = async (req, res) => {
           payment: true,
           shipment: true
         },
-        skip: skip,
+        skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
       }),
@@ -221,9 +260,13 @@ const getAllOrders = async (req, res) => {
 
 const getOrderById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
+
     const order = await prisma.order.findUnique({
-      where: { id: parseInt(id) },
+      where: { id },
       include: {
         orderItems: {
           include: {
@@ -274,7 +317,11 @@ const getOrderById = async (req, res) => {
 
 const updateOrderStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
+
     const { status } = req.body;
 
     // Validate status enum
@@ -287,7 +334,7 @@ const updateOrderStatus = async (req, res) => {
 
     // Get current order
     const currentOrder = await prisma.order.findUnique({
-      where: { id: parseInt(id) }
+      where: { id }
     });
 
     if (!currentOrder) {
@@ -297,17 +344,30 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Business logic: cannot change status of cancelled order
-    if (currentOrder.status === 'CANCELLED') {
+    // Business logic: only allow legal forward transitions (also covers the
+    // old "cannot update a cancelled order" rule, since CANCELLED has no
+    // allowed next states).
+    const allowedNext = ORDER_STATUS_TRANSITIONS[currentOrder.status] || [];
+    if (!allowedNext.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot update status of cancelled order'
+        message: `Cannot transition order from ${currentOrder.status} to ${status}`
       });
     }
 
-    const order = await prisma.order.update({
-      where: { id: parseInt(id) },
-      data: { status }
+    const order = await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id },
+        data: { status }
+      });
+
+      // Cancelling via this endpoint must restore stock exactly like the
+      // dedicated /cancel endpoint does — otherwise inventory silently leaks.
+      if (status === 'CANCELLED') {
+        await restoreOrderStock(tx, id);
+      }
+
+      return updated;
     });
 
     res.json({
@@ -327,8 +387,10 @@ const updateOrderStatus = async (req, res) => {
 
 const getOrdersByCustomer = async (req, res) => {
   try {
-    const { id } = req.params;
-    const customerId = parseInt(id);
+    const customerId = parsePositiveInt(req.params.id);
+    if (customerId === null) {
+      return res.status(400).json({ success: false, message: 'Invalid customer id' });
+    }
 
     // Access control: customers can only view their own orders.
     // Staff/admin may view any customer's orders.
@@ -370,11 +432,14 @@ const getOrdersByCustomer = async (req, res) => {
 // Cancel order with stock restoration
 const cancelOrder = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
 
     // Get order with items
     const order = await prisma.order.findUnique({
-      where: { id: parseInt(id) },
+      where: { id },
       include: {
         orderItems: true
       }
@@ -407,21 +472,12 @@ const cancelOrder = async (req, res) => {
     const updatedOrder = await prisma.$transaction(async (tx) => {
       // 1. Update order status
       const cancelled = await tx.order.update({
-        where: { id: parseInt(id) },
+        where: { id },
         data: { status: 'CANCELLED' }
       });
 
       // 2. Restore stock for all items
-      for (const item of order.orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              increment: item.quantity
-            }
-          }
-        });
-      }
+      await restoreOrderStock(tx, id);
 
       return cancelled;
     });

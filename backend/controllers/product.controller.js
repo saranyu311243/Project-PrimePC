@@ -1,11 +1,13 @@
 const prisma = require('../lib/prisma');
+const { parsePositiveInt, parsePagination } = require('../lib/validation');
+const { PRODUCT_CATEGORIES } = require('../lib/categories');
 
 // Get all products
 const getAllProducts = async (req, res) => {
   try {
-    const { category, brand, search, minPrice, maxPrice, page = 1, limit = 12 } = req.query;
+    const { category, brand, search, minPrice, maxPrice } = req.query;
+    const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 12 });
 
-    const skip = (page - 1) * limit;
     const where = {};
 
     // Filter by category
@@ -47,8 +49,8 @@ const getAllProducts = async (req, res) => {
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
-        skip: parseInt(skip),
-        take: parseInt(limit),
+        skip,
+        take: limit,
         orderBy: { createdAt: 'desc' }
       }),
       prisma.product.count({ where })
@@ -59,8 +61,8 @@ const getAllProducts = async (req, res) => {
       data: products,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page,
+        limit,
         totalPages: Math.ceil(total / limit)
       }
     });
@@ -76,10 +78,13 @@ const getAllProducts = async (req, res) => {
 // Get product by ID
 const getProductById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid product id' });
+    }
 
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(id) }
+      where: { id }
     });
 
     if (!product) {
@@ -105,7 +110,15 @@ const getProductById = async (req, res) => {
 // Create product (Staff/Admin only)
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, stock, imageUrl, category, brand } = req.body;
+    const { name, description, price, stock, imageUrl, category, brand, specs } = req.body;
+    const isPlainObject = specs && typeof specs === 'object' && !Array.isArray(specs);
+
+    if (category !== undefined && !PRODUCT_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category'
+      });
+    }
 
     const product = await prisma.product.create({
       data: {
@@ -115,7 +128,8 @@ const createProduct = async (req, res) => {
         stock: parseInt(stock),
         imageUrl,
         category,
-        brand
+        brand,
+        specs: isPlainObject ? specs : {}
       }
     });
 
@@ -136,27 +150,47 @@ const createProduct = async (req, res) => {
 // Update product (Staff/Admin only)
 const updateProduct = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { name, description, price, stock, imageUrl, category, brand, isAvailable } = req.body;
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid product id' });
+    }
+    const { name, description, price, stock, imageUrl, category, brand, isAvailable, specs } = req.body;
+    const isPlainObject = specs && typeof specs === 'object' && !Array.isArray(specs);
 
     // Validation
-    if (price !== undefined && (isNaN(price) || parseFloat(price) < 0)) {
+    const isValidNumber = (v) => (typeof v === 'number' || typeof v === 'string') && v !== '' && Number.isFinite(Number(v));
+
+    if (price !== undefined && (!isValidNumber(price) || Number(price) < 0)) {
       return res.status(400).json({
         success: false,
         message: 'Price must be a valid positive number'
       });
     }
 
-    if (stock !== undefined && (isNaN(stock) || parseInt(stock) < 0)) {
+    if (stock !== undefined && (!isValidNumber(stock) || Number(stock) < 0)) {
       return res.status(400).json({
         success: false,
         message: 'Stock must be a valid non-negative number'
       });
     }
 
+    if (isAvailable !== undefined && typeof isAvailable !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'isAvailable must be a boolean'
+      });
+    }
+
+    if (category !== undefined && !PRODUCT_CATEGORIES.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category'
+      });
+    }
+
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({
-      where: { id: parseInt(id) }
+      where: { id }
     });
 
     if (!existingProduct) {
@@ -167,7 +201,7 @@ const updateProduct = async (req, res) => {
     }
 
     const product = await prisma.product.update({
-      where: { id: parseInt(id) },
+      where: { id },
       data: {
         name,
         description,
@@ -176,7 +210,8 @@ const updateProduct = async (req, res) => {
         imageUrl,
         category,
         brand,
-        isAvailable
+        isAvailable,
+        specs: isPlainObject ? specs : undefined
       }
     });
 
@@ -199,7 +234,10 @@ const updateProduct = async (req, res) => {
 // เพราะ OrderItem ผูกกับ Product แบบ onDelete: Cascade การลบจริงจะทำให้ประวัติหาย
 const deleteProduct = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parsePositiveInt(req.params.id);
+    if (id === null) {
+      return res.status(400).json({ success: false, message: 'Invalid product id' });
+    }
 
     const existing = await prisma.product.findUnique({ where: { id } });
     if (!existing) {
