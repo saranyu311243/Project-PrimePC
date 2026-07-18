@@ -37,6 +37,18 @@ function PaymentPage() {
   }, [orderId, navigate])
 
   useEffect(() => {
+    if (!done) return
+
+    const blockBack = () => {
+      window.history.pushState(null, '', window.location.href)
+    }
+
+    window.history.pushState(null, '', window.location.href)
+    window.addEventListener('popstate', blockBack)
+    return () => window.removeEventListener('popstate', blockBack)
+  }, [done])
+
+  useEffect(() => {
     let active = true
     getPaymentOptions()
       .then((options) => {

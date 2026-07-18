@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MdRefresh, MdLocalShipping, MdPaid, MdQuestionAnswer, MdInventory2, MdAdd, MdEdit, MdDeleteOutline, MdCheckCircle } from 'react-icons/md'
-import { getOrders, updateOrderStatus } from '../services/orderService'
+import { MdRefresh, MdLocalShipping, MdPaid, MdQuestionAnswer, MdCheckCircle } from 'react-icons/md'
+import { getOrders } from '../services/orderService'
 import { confirmPayment } from '../services/paymentService'
 import { createShipment, updateShipmentStatus } from '../services/shipmentService'
 import { getAllInquiries, respondInquiry, closeInquiry } from '../services/inquiryService'
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
-import ProductModal from '../components/ProductModal'
 
 const money = (value) => `฿${Number(value || 0).toLocaleString('th-TH')}`
 
@@ -39,41 +37,35 @@ const statusColor = {
 const fmtDate = (value) =>
   value ? new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
 
-const CATEGORY_TH = {
-  cpu: 'ซีพียู', motherboard: 'เมนบอร์ด', gpu: 'การ์ดจอ', ram: 'แรม',
-  storage: 'อุปกรณ์จัดเก็บข้อมูล', psu: 'พาวเวอร์ซัพพลาย', cooling: 'ระบายความร้อน',
-  notebook: 'โน้ตบุ๊ก', monitor: 'จอมอนิเตอร์', keyboard: 'คีย์บอร์ด',
-  mouse: 'เมาส์', accessory: 'อุปกรณ์เสริม', case: 'เคส', headset: 'หูฟัง',
+const parseShippingAddress = (shippingAddress) => {
+  if (!shippingAddress) return {}
+  const [fullName, phone, ...addressParts] = shippingAddress.split('|').map((segment) => segment.trim())
+  return {
+    fullName: fullName || '',
+    phone: phone || '',
+    address: addressParts.filter(Boolean).join(' | ') || ''
+  }
 }
 
 function StaffDashboard() {
   const [tab, setTab] = useState('orders')
   const [orders, setOrders] = useState([])
   const [inquiries, setInquiries] = useState([])
-  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [responses, setResponses] = useState({})
 
-  // Product modal state
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editProduct, setEditProduct] = useState(null)
-  const [productBusy, setProductBusy] = useState(false)
-  const [productSuccess, setProductSuccess] = useState('')
-
   const load = async () => {
     setLoading(true)
     setError('')
     try {
-      const [orderList, inquiryList, productList] = await Promise.all([
+      const [orderList, inquiryList] = await Promise.all([
         getOrders({ limit: 100 }),
         getAllInquiries({ limit: 100 }),
-        fetchProducts({ limit: 200 }),
       ])
       setOrders(orderList.orders)
       setInquiries(inquiryList.inquiries)
-      setProducts(productList.products)
     } catch (err) {
       setError(err.response?.data?.message || 'โหลดข้อมูลไม่สำเร็จ')
     } finally {
@@ -87,23 +79,11 @@ function StaffDashboard() {
     load()
   }, [])
 
-  const pendingCount = useMemo(() => orders.filter((o) => o.status === 'PENDING').length, [orders])
+  const visibleOrders = useMemo(() => orders.filter((o) => o.payment), [orders])
+  const pendingCount = useMemo(() => visibleOrders.filter((o) => o.status === 'PENDING').length, [visibleOrders])
   const openInquiries = useMemo(() => inquiries.filter((i) => i.status !== 'CLOSED').length, [inquiries])
 
   const patchOrder = (id, patch) => setOrders((cur) => cur.map((o) => (o.id === id ? { ...o, ...patch } : o)))
-
-  const changeStatus = async (id, status) => {
-    setBusyId(id)
-    setError('')
-    try {
-      const updated = await updateOrderStatus(id, status)
-      patchOrder(id, { status: updated?.status ?? status })
-    } catch (err) {
-      setError(err.response?.data?.message || 'อัปเดตสถานะไม่สำเร็จ')
-    } finally {
-      setBusyId(null)
-    }
-  }
 
   const doConfirmPayment = async (order) => {
     if (!order.payment?.id) return
@@ -171,44 +151,6 @@ function StaffDashboard() {
     }
   }
 
-  // Product CRUD
-  const handleSaveProduct = async (form) => {
-    setProductBusy(true)
-    setProductSuccess('')
-    try {
-      const payload = {
-        ...form,
-        price: Number(form.price),
-        stock: Number(form.stock ?? 0),
-      }
-      if (form.id) {
-        const updated = await updateProduct(form.id, payload)
-        setProducts((cur) => cur.map((p) => (p.id === form.id ? updated : p)))
-      } else {
-        const created = await createProduct(payload)
-        setProducts((cur) => [created, ...cur])
-      }
-      setModalOpen(false)
-      setEditProduct(null)
-      setProductSuccess(form.id ? 'อัปเดตสินค้าเรียบร้อย' : 'เพิ่มสินค้าเรียบร้อย')
-      setTimeout(() => setProductSuccess(''), 3000)
-    } catch (err) {
-      setError(err.response?.data?.message || 'บันทึกสินค้าไม่สำเร็จ')
-    } finally {
-      setProductBusy(false)
-    }
-  }
-
-  const handleDeleteProduct = async (id, name) => {
-    if (!window.confirm(`ยืนยันการลบสินค้า "${name}"? การกระทำนี้ไม่สามารถย้อนกลับได้`)) return
-    try {
-      await deleteProduct(id)
-      setProducts((cur) => cur.filter((p) => p.id !== id))
-    } catch (err) {
-      setError(err.response?.data?.message || 'ลบสินค้าไม่สำเร็จ')
-    }
-  }
-
   const tabButton = (id, label, Icon) => (
     <button
       onClick={() => setTab(id)}
@@ -225,7 +167,7 @@ function StaffDashboard() {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-bold uppercase tracking-wide text-sky-600">แดชบอร์ดพนักงาน</p>
-            <h1 className="mt-2 text-3xl font-black text-slate-900">จัดการคำสั่งซื้อ การจัดส่ง และสินค้า</h1>
+            <h1 className="mt-2 text-3xl font-black text-slate-900">จัดการคำสั่งซื้อและการจัดส่ง</h1>
           </div>
           <button
             onClick={load}
@@ -235,11 +177,10 @@ function StaffDashboard() {
           </button>
         </header>
 
-        {/* Stats */}
-        <section className="grid gap-4 sm:grid-cols-4">
+        <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
             <p className="text-sm text-slate-500">คำสั่งซื้อทั้งหมด</p>
-            <p className="mt-2 text-2xl font-black text-blue-800">{loading ? '—' : orders.length}</p>
+            <p className="mt-2 text-2xl font-black text-blue-800">{loading ? '—' : visibleOrders.length}</p>
           </div>
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
             <p className="text-sm text-slate-500">รอดำเนินการ</p>
@@ -249,37 +190,25 @@ function StaffDashboard() {
             <p className="text-sm text-slate-500">คำถามที่ยังไม่ปิด</p>
             <p className="mt-2 text-2xl font-black text-indigo-600">{loading ? '—' : openInquiries}</p>
           </div>
-          <div className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
-            <p className="text-sm text-slate-500">สินค้าทั้งหมด</p>
-            <p className="mt-2 text-2xl font-black text-emerald-600">{loading ? '—' : products.length}</p>
-          </div>
         </section>
 
-        {/* Tabs */}
         <div className="flex flex-wrap gap-3">
           {tabButton('orders', 'คำสั่งซื้อ & จัดส่ง', MdLocalShipping)}
           {tabButton('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
-          {tabButton('products', 'จัดการสินค้า', MdInventory2)}
         </div>
 
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100">{error}</p>}
-        {productSuccess && (
-          <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 border border-emerald-100">
-            <MdCheckCircle className="h-5 w-5" />{productSuccess}
-          </p>
-        )}
 
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-white" />)}
           </div>
         ) : tab === 'orders' ? (
-          /* ─── Orders & Shipments ─── */
           <section className="space-y-4">
-            {orders.length === 0 && (
+            {visibleOrders.length === 0 && (
               <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">ยังไม่มีคำสั่งซื้อ</p>
             )}
-            {orders.map((order) => (
+            {visibleOrders.map((order) => (
               <article key={order.id} className="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
@@ -297,25 +226,31 @@ function StaffDashboard() {
                   </span>
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-                  {/* Order status select */}
-                  <label className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-600">สถานะ:</span>
-                    <select
-                      value={order.status}
-                      disabled={busyId === order.id || order.status === 'CANCELLED'}
-                      onChange={(e) => changeStatus(order.id, e.target.value)}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-blue-600 disabled:bg-slate-100"
-                    >
-                      {ORDER_STATUSES.map((s) => (
-                        <option key={s} value={s}>{ORDER_STATUS_TH[s] ?? s}</option>
-                      ))}
-                    </select>
-                  </label>
+                <div className="mt-4 grid gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700 md:grid-cols-[1.1fr_1fr]">
+                  <div className="space-y-2">
+                    <p className="font-semibold text-slate-900">ข้อมูลลูกค้า</p>
+                    <p><span className="font-semibold text-slate-700">ชื่อ:</span> {order.user?.name || parseShippingAddress(order.shippingAddress).fullName || `ผู้ใช้ #${order.userId}`}</p>
+                    <p><span className="font-semibold text-slate-700">เบอร์ติดต่อ:</span> {order.user?.phone || parseShippingAddress(order.shippingAddress).phone || 'ไม่ระบุ'}</p>
+                    <p className="break-words"><span className="font-semibold text-slate-700">ที่อยู่จัดส่ง:</span> {parseShippingAddress(order.shippingAddress).address || order.shippingAddress || 'ไม่ระบุ'}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="font-semibold text-slate-900">สินค้าในคำสั่งซื้อ</p>
+                    {(order.orderItems ?? []).map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2 shadow-sm">
+                        <span className="min-w-0 truncate text-slate-700">{item.product?.name || `สินค้า #${item.productId}`} × {item.quantity}</span>
+                        <strong className="text-slate-900">{money(item.price * item.quantity)}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-                  {/* Payment */}
+                <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                    <span className="font-semibold text-slate-900">สถานะ:</span> {ORDER_STATUS_TH[order.status] ?? order.status}
+                  </div>
+
                   {order.payment ? (
-                    order.payment.status === 'PENDING' ? (
+                    order.payment.status === 'PENDING' && order.status !== 'CANCELLED' ? (
                       <button
                         onClick={() => doConfirmPayment(order)}
                         disabled={busyId === order.id}
@@ -332,7 +267,6 @@ function StaffDashboard() {
                     <span className="text-sm text-slate-400">ยังไม่มีการชำระเงิน</span>
                   )}
 
-                  {/* Shipment */}
                   {order.shipment ? (
                     <label className="flex items-center gap-2 text-sm">
                       <MdLocalShipping className="h-4 w-4 text-blue-600" />
@@ -361,8 +295,7 @@ function StaffDashboard() {
               </article>
             ))}
           </section>
-        ) : tab === 'inquiries' ? (
-          /* ─── Inquiries ─── */
+        ) : (
           <section className="space-y-4">
             {inquiries.length === 0 && (
               <p className="rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">ยังไม่มีคำถามจากลูกค้า</p>
@@ -415,102 +348,8 @@ function StaffDashboard() {
               </article>
             ))}
           </section>
-        ) : (
-          /* ─── Products CRUD ─── */
-          <section className="rounded-2xl bg-white p-6 shadow-sm border border-slate-100">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-black text-slate-900">จัดการสินค้า</h2>
-                <p className="mt-1 text-sm text-slate-500">เพิ่ม แก้ไข หรือลบสินค้าออกจากระบบ</p>
-              </div>
-              <button
-                onClick={() => { setEditProduct(null); setModalOpen(true) }}
-                className="flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-800 transition"
-              >
-                <MdAdd className="h-5 w-5" />เพิ่มสินค้าใหม่
-              </button>
-            </div>
-
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-slate-500">
-                    <th className="pb-3 pr-4 font-semibold">รูป</th>
-                    <th className="pb-3 pr-4 font-semibold">สินค้า</th>
-                    <th className="pb-3 pr-4 font-semibold">หมวดหมู่</th>
-                    <th className="pb-3 pr-4 font-semibold">ราคา</th>
-                    <th className="pb-3 pr-4 font-semibold">สต็อก</th>
-                    <th className="pb-3 pr-4 font-semibold">สถานะ</th>
-                    <th className="pb-3 font-semibold">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                      <td className="py-3 pr-4">
-                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                          {p.image_url ? (
-                            <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400">{p.icon}</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <p className="font-bold text-slate-900 line-clamp-1">{p.name}</p>
-                        <p className="text-xs text-slate-400">{p.brand}</p>
-                      </td>
-                      <td className="py-3 pr-4 text-slate-600">{CATEGORY_TH[p.category] ?? p.category}</td>
-                      <td className="py-3 pr-4 font-semibold text-blue-800">{money(p.price)}</td>
-                      <td className="py-3 pr-4">
-                        <span className={`font-semibold ${p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-slate-700'}`}>
-                          {p.stockQuantity}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${p.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
-                          {p.inStock ? 'เปิดขาย' : 'ปิดขาย'}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { setEditProduct(p); setModalOpen(true) }}
-                            className="flex items-center gap-1.5 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition"
-                          >
-                            <MdEdit className="h-3.5 w-3.5" />แก้ไข
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProduct(p.id, p.name)}
-                            className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 transition"
-                          >
-                            <MdDeleteOutline className="h-3.5 w-3.5" />ลบ
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {products.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-sm text-slate-400">ไม่พบสินค้าในระบบ</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
         )}
       </div>
-
-      {/* Product Modal */}
-      {modalOpen && (
-        <ProductModal
-          initial={editProduct}
-          onSave={handleSaveProduct}
-          onClose={() => { setModalOpen(false); setEditProduct(null) }}
-          busy={productBusy}
-        />
-      )}
     </div>
   )
 }

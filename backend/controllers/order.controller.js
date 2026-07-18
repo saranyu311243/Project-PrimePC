@@ -229,7 +229,15 @@ const getAllOrders = async (req, res) => {
             }
           },
           payment: true,
-          shipment: true
+          shipment: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true
+            }
+          }
         },
         skip,
         take: limit,
@@ -461,7 +469,7 @@ const cancelOrder = async (req, res) => {
     }
 
     // Check if order can be cancelled
-    if (['SHIPPING', 'DELIVERED', 'CANCELLED'].includes(order.status)) {
+    if (['PROCESSING', 'SHIPPING', 'DELIVERED', 'CANCELLED'].includes(order.status)) {
       return res.status(400).json({
         success: false,
         message: `Cannot cancel order with status: ${order.status}`

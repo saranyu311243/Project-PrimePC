@@ -230,6 +230,14 @@ const confirmPayment = async (req, res) => {
       });
     }
 
+    // Do not confirm payment for cancelled orders
+    if (currentPayment.order.status === 'CANCELLED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot confirm payment for cancelled order'
+      });
+    }
+
     // Only PENDING payments can be confirmed
     if (currentPayment.status !== 'PENDING') {
       return res.status(400).json({

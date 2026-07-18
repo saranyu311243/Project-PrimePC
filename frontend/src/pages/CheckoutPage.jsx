@@ -72,6 +72,7 @@ function CheckoutPage() {
       const order = result?.order ?? result
       // Move to payment with the created order id + amount (server-calculated total).
       navigate('/payment', {
+        replace: true,
         state: { orderId: order.id, amount: order.totalAmount ?? total },
       })
     } catch (err) {

@@ -25,7 +25,7 @@ const statusMeta = {
   CANCELLED: { label: 'ยกเลิกแล้ว', className: 'bg-red-50 text-red-600' },
 }
 
-const CANCELLABLE = ['PENDING', 'CONFIRMED', 'PROCESSING']
+const CANCELLABLE = ['PENDING', 'CONFIRMED']
 
 function OrderHistoryPage() {
   const navigate = useNavigate()
