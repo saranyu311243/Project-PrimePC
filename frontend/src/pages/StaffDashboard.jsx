@@ -219,7 +219,7 @@ function StaffDashboard() {
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
-      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:w-64">
+      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-64 lg:overflow-y-auto">
         <div className="px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
           PRIME<span className="text-sky-300">PC</span>
         </div>
@@ -228,6 +228,8 @@ function StaffDashboard() {
         <nav className="flex flex-col gap-1">
           {sidebarNavItem('orders', 'คำสั่งซื้อ & จัดส่ง', MdLocalShipping)}
           {sidebarNavItem('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
+        </nav>
+
         <div className="mt-auto pt-4">
           <div className="mb-2 border-t border-blue-800" />
           <button
@@ -238,8 +240,6 @@ function StaffDashboard() {
             ออกจากระบบ
           </button>
         </div>
-        </nav>
-
       </aside>
 
       <div className="min-w-0 flex-1 rounded-3xl bg-slate-100 p-6 sm:p-8">

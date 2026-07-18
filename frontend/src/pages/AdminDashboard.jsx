@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import ReactApexChart from 'react-apexcharts'
 import {
   MdGroup, MdReceiptLong, MdPayments, MdPendingActions, MdRefresh,
   MdTrendingUp, MdBarChart, MdDashboard, MdAdminPanelSettings,
-  MdDeleteOutline, MdSwapHoriz, MdCandlestickChart, MdInventory2,
+  MdDeleteOutline, MdSwapHoriz, MdInventory2, MdLogout,
   MdAdd, MdEdit, MdCheckCircle, MdSearch,
 } from 'react-icons/md'
 import { useAuth } from '../hooks/useAuth'
+import { useCart } from '../hooks/useCart'
+import { useFavorites } from '../hooks/useFavorites'
 import { getDashboard, getAllUsers, updateUserRole, deleteUser, getSalesReport } from '../services/adminService'
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
 import ProductModal from '../components/ProductModal'
@@ -209,7 +211,10 @@ function RevenueTrendChart({ orders, loading }) {
 }
 
 function AdminDashboard() {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const { clearCart } = useCart()
+  const { clearFavorites } = useFavorites()
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [sales, setSales] = useState(null)
@@ -337,13 +342,21 @@ function AdminDashboard() {
     return counts
   }, [products])
 
-  const tabBtn = (id, label, Icon) => (
+  const handleLogout = () => {
+    clearCart()
+    clearFavorites()
+    logout()
+    navigate('/login')
+  }
+
+  const sidebarNavItem = (id, label, Icon) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition ${activeTab === id ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-blue-50'
-        }`}
+      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+        activeTab === id ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
+      }`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5" />
       {label}
     </button>
   )
@@ -351,7 +364,37 @@ function AdminDashboard() {
   const totalRevenue = stats?.totalRevenue ?? sales?.totalRevenue ?? 0
 
   return (
-    <div className="rounded-3xl bg-slate-100 p-6 sm:p-8">
+    <div className="flex flex-col gap-6 lg:flex-row">
+      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-64 lg:overflow-y-auto">
+        <div className="px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
+          PRIME<span className="text-sky-300">PC</span>
+        </div>
+
+        <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-widest text-blue-300">เมนูผู้ดูแลระบบ</p>
+        <nav className="flex flex-col gap-1">
+          {sidebarNavItem('users', 'จัดการผู้ใช้', MdGroup)}
+          {sidebarNavItem('sales', 'รายงานยอดขาย', MdBarChart)}
+          {sidebarNavItem('products', 'จัดการสินค้า', MdInventory2)}
+        </nav>
+
+        <div className="mt-auto pt-4">
+          <div className="mb-2 border-t border-blue-800" />
+          <button
+            onClick={() => navigate('/staff')}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
+          >
+            <MdDashboard className="h-5 w-5" />แดชบอร์ดพนักงาน
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
+          >
+            <MdLogout className="h-5 w-5" />ออกจากระบบ
+          </button>
+        </div>
+      </aside>
+
+      <div className="min-w-0 flex-1 rounded-3xl bg-slate-100 p-6 sm:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
 
         {/* ── Header ── */}
@@ -365,12 +408,6 @@ function AdminDashboard() {
             <p className="mt-1 text-sm text-slate-500">ยินดีต้อนรับ, {user?.firstName || user?.name || 'ผู้ดูแล'}</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              to="/staff"
-              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-100 transition"
-            >
-              <MdDashboard className="h-4 w-4" />แดชบอร์ดพนักงาน
-            </Link>
             <button
               onClick={load}
               className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition"
@@ -415,13 +452,6 @@ function AdminDashboard() {
           </div>
           <RevenueTrendChart orders={sales?.orders} loading={loading} />
         </section>
-
-        {/* ── Tabs ── */}
-        <div className="flex flex-wrap gap-3">
-          {tabBtn('users', 'จัดการผู้ใช้', MdGroup)}
-          {tabBtn('sales', 'รายงานยอดขาย', MdBarChart)}
-          {tabBtn('products', 'จัดการสินค้า', MdInventory2)}
-        </div>
 
         {/* ── Users Tab ── */}
         {activeTab === 'users' && (
@@ -716,6 +746,7 @@ function AdminDashboard() {
           busy={productBusy}
         />
       )}
+      </div>
     </div>
   )
 }
