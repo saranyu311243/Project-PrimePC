@@ -10,7 +10,7 @@ const productLinks = [
 
 const helpLinks = [
   { label: 'ติดต่อพนักงาน', to: '/contact' },
-  { label: 'ติดตามพัสดุ', to: '/order-tracking' },
+  { label: 'ติดตามพัสดุจัดส่ง', to: '/order-tracking' },
 ]
 
 function Footer() {
