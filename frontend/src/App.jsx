@@ -1,8 +1,8 @@
-
 import { useEffect } from 'react'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import MainLayout from './components/MainLayout'
 import RoleRoute from './components/RoleRoute'
+import { useAuth } from './hooks/useAuth'
 import CartPage from './pages/CartPage'
 import CustomerProfilePage from './pages/CustomerProfilePage'
 import HomePage from './pages/HomePage'
@@ -31,7 +31,17 @@ function ProductListRoute() {
   return <ProductListPage key={location.search} />
 }
 
-function App() {
+function AppContent() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    if (user?.role === 'STAFF' && location.pathname !== '/staff') {
+      navigate('/staff', { replace: true })
+    }
+  }, [user, navigate, location.pathname])
+
   return (
     <Routes>
       <Route element={<MainLayout />}>
@@ -50,11 +60,15 @@ function App() {
         <Route path="/order-tracking" element={<OrderTrackingPage />} />
         <Route path="/orders" element={<OrderHistoryPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/staff" element={<RoleRoute allow={['STAFF', 'ADMIN']}><StaffDashboard /></RoleRoute>} />
         <Route path="/admin" element={<RoleRoute allow={['ADMIN']}><AdminDashboard /></RoleRoute>} />
       </Route>
+      <Route path="/staff" element={<RoleRoute allow={['STAFF', 'ADMIN']}><StaffDashboard /></RoleRoute>} />
     </Routes>
   )
+}
+
+function App() {
+  return <AppContent />
 }
 
 export default App

@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MdRefresh, MdLocalShipping, MdPaid, MdQuestionAnswer, MdCheckCircle } from 'react-icons/md'
+import { useNavigate } from 'react-router-dom'
+import { MdRefresh, MdLocalShipping, MdPaid, MdQuestionAnswer, MdLogout } from 'react-icons/md'
 import { getOrders } from '../services/orderService'
 import { confirmPayment } from '../services/paymentService'
 import { createShipment, updateShipmentStatus } from '../services/shipmentService'
 import { getAllInquiries, respondInquiry, closeInquiry } from '../services/inquiryService'
+import { useAuth } from '../hooks/useAuth'
+import { useCart } from '../hooks/useCart'
+import { useFavorites } from '../hooks/useFavorites'
 
 const money = (value) => `฿${Number(value || 0).toLocaleString('th-TH')}`
 
-const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPING', 'DELIVERED', 'CANCELLED']
+
 const SHIPMENT_STATUSES = ['PREPARING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
 
 const ORDER_STATUS_TH = {
@@ -25,17 +29,57 @@ const INQUIRY_STATUS_TH = {
   CLOSED: 'ปิดแล้ว',
 }
 
-const statusColor = {
-  PENDING: 'bg-amber-100 text-amber-700',
-  CONFIRMED: 'bg-sky-100 text-sky-700',
-  PROCESSING: 'bg-indigo-100 text-indigo-700',
-  SHIPPING: 'bg-blue-100 text-blue-700',
-  DELIVERED: 'bg-emerald-100 text-emerald-700',
-  CANCELLED: 'bg-rose-100 text-rose-700',
-}
+
 
 const fmtDate = (value) =>
   value ? new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+
+// Maps an order's status to how many of the 4 progress steps are complete
+const ORDER_STEP_LABELS = ['ยืนยันคำสั่งซื้อ', 'ชำระเงิน', 'เตรียม/จัดส่งสินค้า', 'จัดส่งสำเร็จ']
+const getCompletedSteps = (order) => {
+  switch (order.status) {
+    case 'CONFIRMED': return 1
+    case 'PROCESSING': return 2
+    case 'SHIPPING': return 3
+    case 'DELIVERED': return 4
+    default: return 0
+  }
+}
+
+function OrderStepIndicator({ order }) {
+  if (order.status === 'CANCELLED') {
+    return (
+      <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-700">
+        {ORDER_STATUS_TH.CANCELLED}
+      </span>
+    )
+  }
+
+  const completed = getCompletedSteps(order)
+
+  return (
+    <div className="flex items-center" title={ORDER_STATUS_TH[order.status] ?? order.status}>
+      {ORDER_STEP_LABELS.map((label, idx) => {
+        const stepNum = idx + 1
+        const done = stepNum <= completed
+        return (
+          <div key={label} className="flex items-center">
+            <div
+              className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold ${
+                done ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+              }`}
+            >
+              {stepNum}
+            </div>
+            {idx < ORDER_STEP_LABELS.length - 1 && (
+              <div className={`h-1 w-8 ${stepNum < completed ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 const parseShippingAddress = (shippingAddress) => {
   if (!shippingAddress) return {}
@@ -48,6 +92,10 @@ const parseShippingAddress = (shippingAddress) => {
 }
 
 function StaffDashboard() {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
+  const { clearCart } = useCart()
+  const { clearFavorites } = useFavorites()
   const [tab, setTab] = useState('orders')
   const [orders, setOrders] = useState([])
   const [inquiries, setInquiries] = useState([])
@@ -83,7 +131,6 @@ function StaffDashboard() {
   const pendingCount = useMemo(() => visibleOrders.filter((o) => o.status === 'PENDING').length, [visibleOrders])
   const openInquiries = useMemo(() => inquiries.filter((i) => i.status !== 'CLOSED').length, [inquiries])
 
-  const patchOrder = (id, patch) => setOrders((cur) => cur.map((o) => (o.id === id ? { ...o, ...patch } : o)))
 
   const doConfirmPayment = async (order) => {
     if (!order.payment?.id) return
@@ -151,18 +198,51 @@ function StaffDashboard() {
     }
   }
 
-  const tabButton = (id, label, Icon) => (
+  const handleLogout = () => {
+    clearCart()
+    clearFavorites()
+    logout()
+    navigate('/login')
+  }
+
+  const sidebarNavItem = (id, label, Icon) => (
     <button
       onClick={() => setTab(id)}
-      className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition ${tab === id ? 'bg-blue-700 text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-blue-50'}`}
+      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+        tab === id ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
+      }`}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-5 w-5" />
       {label}
     </button>
   )
 
   return (
-    <div className="rounded-3xl bg-slate-100 p-6 sm:p-8">
+    <div className="flex flex-col gap-6 lg:flex-row">
+      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:w-64">
+        <div className="px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
+          PRIME<span className="text-sky-300">PC</span>
+        </div>
+
+        <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-widest text-blue-300">เมนูพนักงาน</p>
+        <nav className="flex flex-col gap-1">
+          {sidebarNavItem('orders', 'คำสั่งซื้อ & จัดส่ง', MdLocalShipping)}
+          {sidebarNavItem('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
+        <div className="mt-auto pt-4">
+          <div className="mb-2 border-t border-blue-800" />
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
+          >
+            <MdLogout className="h-5 w-5" />
+            ออกจากระบบ
+          </button>
+        </div>
+        </nav>
+
+      </aside>
+
+      <div className="min-w-0 flex-1 rounded-3xl bg-slate-100 p-6 sm:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -192,11 +272,6 @@ function StaffDashboard() {
           </div>
         </section>
 
-        <div className="flex flex-wrap gap-3">
-          {tabButton('orders', 'คำสั่งซื้อ & จัดส่ง', MdLocalShipping)}
-          {tabButton('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
-        </div>
-
         {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100">{error}</p>}
 
         {loading ? (
@@ -221,9 +296,7 @@ function StaffDashboard() {
                       <strong className="text-blue-800">{money(order.totalAmount)}</strong>
                     </p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusColor[order.status] ?? 'bg-slate-100 text-slate-600'}`}>
-                    {ORDER_STATUS_TH[order.status] ?? order.status}
-                  </span>
+                  <OrderStepIndicator order={order} />
                 </div>
 
                 <div className="mt-4 grid gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700 md:grid-cols-[1.1fr_1fr]">
@@ -350,6 +423,7 @@ function StaffDashboard() {
           </section>
         )}
       </div>
+    </div>
     </div>
   )
 }

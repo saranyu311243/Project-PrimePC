@@ -1,10 +1,29 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MdInventory2, MdOutlineReceiptLong } from 'react-icons/md'
+import { MdInventory2, MdOutlineReceiptLong, MdCheckCircle } from 'react-icons/md'
 import { useAuth } from '../hooks/useAuth'
 import { getOrders, cancelOrder } from '../services/orderService'
 
 const money = (value) => Number(value || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })
+
+// Timeline steps for order progression
+const getOrderSteps = (order) => {
+  const steps = [
+    { id: 'pending', label: 'รับคำสั่งซื้อ', completed: true }
+  ]
+
+  if (order.status !== 'CANCELLED') {
+    steps.push({ id: 'confirmed', label: 'ยืนยันคำสั่งซื้อ', completed: ['CONFIRMED', 'PROCESSING', 'SHIPPING', 'DELIVERED'].includes(order.status) })
+    steps.push({ id: 'payment', label: 'ชำระเงิน', completed: order.payment?.status === 'SUCCESS' })
+    steps.push({ id: 'processing', label: 'เตรียมสินค้า', completed: ['PROCESSING', 'SHIPPING', 'DELIVERED'].includes(order.status) })
+    steps.push({ id: 'shipping', label: 'จัดส่ง', completed: ['SHIPPING', 'DELIVERED'].includes(order.status) || order.shipment?.status === 'IN_TRANSIT' })
+    steps.push({ id: 'delivered', label: 'ส่งถึงที่อยู่', completed: order.status === 'DELIVERED' || order.shipment?.status === 'DELIVERED' })
+  } else {
+    steps.push({ id: 'cancelled', label: 'ยกเลิกแล้ว', completed: true })
+  }
+
+  return steps
+}
 
 const fmtDate = (iso) => {
   if (!iso) return '-'
@@ -130,6 +149,22 @@ function OrderHistoryPage() {
                         <strong className="shrink-0 text-slate-700">฿{money(item.price * item.quantity)}</strong>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="mt-6 border-t border-slate-200 pt-4">
+                    <div className="flex flex-wrap gap-1 sm:gap-0">
+                      {getOrderSteps(order).map((step, idx, arr) => (
+                        <div key={step.id} className="flex flex-1 items-center gap-1 sm:gap-0">
+                          <div className="relative flex flex-col items-center">
+                            <div className={`h-8 w-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition ${ step.completed ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-slate-100 border-slate-300 text-slate-400' }`}>
+                              {step.completed ? <MdCheckCircle className="h-5 w-5" /> : idx + 1}
+                            </div>
+                            <span className="mt-1 text-[10px] font-semibold text-slate-600 text-center">{step.label}</span>
+                          </div>
+                          {idx < arr.length - 1 && <div className={`flex-1 h-1 mx-0.5 sm:mx-1 ${step.completed ? 'bg-emerald-500' : 'bg-slate-200'}`} />}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
