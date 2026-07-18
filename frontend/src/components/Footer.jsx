@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { MdLocationOn, MdPhone, MdEmail } from 'react-icons/md'
 
-// คอลัมน์ลิงก์ — ข้อความ + ปลายทางภายในแอป
 const productLinks = [
   { label: 'แล็ปท็อป & คอมพิวเตอร์', to: '/products?category=notebook' },
   { label: 'การ์ดจอ & ซีพียู', to: '/products?category=gpu' },
@@ -10,10 +9,8 @@ const productLinks = [
 ]
 
 const helpLinks = [
-  { label: 'ตรวจสอบสถานะคำสั่งซื้อ', to: '/order-tracking' },
-  { label: 'นโยบายการคืนสินค้า', to: '/contact' },
-  { label: 'คำถามที่พบบ่อย (FAQ)', to: '/contact' },
-  { label: 'ติดต่อเรา', to: '/contact' },
+  { label: 'ติดต่อพนักงาน', to: '/contact' },
+  { label: 'ติดตามพัสดุ', to: '/order-tracking' },
 ]
 
 function Footer() {
