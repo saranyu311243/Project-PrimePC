@@ -29,3 +29,9 @@ export const getSalesReport = async (params = {}) => {
   const { data } = await api.get('/api/admin/sales', { params })
   return data?.data
 }
+
+/** Create a new STAFF account (admin). Role is always STAFF, set by the backend. */
+export const createStaffUser = async (payload) => {
+  const { data } = await api.post('/api/admin/users/staff', payload)
+  return data?.data
+}

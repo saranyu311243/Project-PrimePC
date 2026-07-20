@@ -3,6 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const verifyToken = require('../middlewares/verifyToken');
 const checkRole = require('../middlewares/checkRole');
+const { validateRegister, sanitizeInput } = require('../middlewares/validateInput');
 
 /**
  * @swagger
@@ -113,5 +114,36 @@ router.get('/sales', verifyToken, checkRole('ADMIN'), adminController.getSalesRe
  *         description: User deleted
  */
 router.delete('/users/:id', verifyToken, checkRole('ADMIN'), adminController.deleteUser);
+
+/**
+ * @swagger
+ * /api/admin/users/staff:
+ *   post:
+ *     tags: [Admin]
+ *     summary: Create a new STAFF account (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Staff account created
+ */
+router.post('/users/staff', verifyToken, checkRole('ADMIN'), sanitizeInput, validateRegister, adminController.createStaff);
 
 module.exports = router;

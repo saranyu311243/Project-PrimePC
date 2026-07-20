@@ -254,7 +254,6 @@ function Navbar() {
                         <>
                           <div className="mx-3 my-1 border-t border-slate-200" />
                           <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">ระบบจัดการ</p>
-                          <Link to="/staff" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 font-semibold text-indigo-700 hover:bg-indigo-50"><MdDashboard className="h-5 w-5" />แดชบอร์ดพนักงาน</Link>
                           <Link to="/admin" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg bg-purple-50 px-3 py-2.5 font-semibold text-purple-700 hover:bg-purple-100"><MdAdminPanelSettings className="h-5 w-5" />แดชบอร์ดผู้ดูแล</Link>
                         </>
                       )}

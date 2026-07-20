@@ -39,9 +39,8 @@ function AppContent() {
   useEffect(() => {
     if (user?.role === 'STAFF' && location.pathname !== '/staff') {
       navigate('/staff', { replace: true })
-    } else if (user?.role === 'ADMIN' && !['/admin', '/staff'].includes(location.pathname)) {
-      // แอดมินก็ล็อกไว้ในแดชบอร์ดของตัวเองเหมือน staff — เข้าหน้าเว็บฝั่งลูกค้าไม่ได้
-      // (ยกเว้น /staff เพราะแอดมินยังดูแดชบอร์ดพนักงานได้ตามเดิม)
+    } else if (user?.role === 'ADMIN' && location.pathname !== '/admin') {
+      // แอดมินล็อกไว้ในแดชบอร์ดของตัวเองเท่านั้น — เข้าหน้าเว็บฝั่งลูกค้าและ /staff ไม่ได้แล้ว
       navigate('/admin', { replace: true })
     }
   }, [user, navigate, location.pathname])
@@ -65,7 +64,7 @@ function AppContent() {
         <Route path="/orders" element={<OrderHistoryPage />} />
         <Route path="/contact" element={<ContactPage />} />
       </Route>
-      <Route path="/staff" element={<RoleRoute allow={['STAFF', 'ADMIN']}><StaffDashboard /></RoleRoute>} />
+      <Route path="/staff" element={<RoleRoute allow={['STAFF']}><StaffDashboard /></RoleRoute>} />
       <Route path="/admin" element={<RoleRoute allow={['ADMIN']}><AdminDashboard /></RoleRoute>} />
     </Routes>
   )

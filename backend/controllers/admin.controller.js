@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const prisma = require('../lib/prisma');
 const { parsePositiveInt, parsePagination, parseOptionalDate } = require('../lib/validation');
 
@@ -184,4 +185,29 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getDashboard, getAllUsers, updateUserRole, getSalesReport, deleteUser };
+// Create a new STAFF account
+// role ถูกบังคับเป็น STAFF เสมอผ่าน endpoint นี้ — ห้ามให้แอดมินสร้างบัญชี ADMIN
+// โดยตรงจากตรงนี้ (ถ้าจะเลื่อนขั้นต้องผ่าน updateUserRole ซึ่งมีการล็อกแยกต่างหากอยู่แล้ว)
+const createStaff = async (req, res) => {
+  try {
+    const { email, password, name, phone, address } = req.body;
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Email already registered' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: { email, password: hashedPassword, name, phone, address, role: 'STAFF' },
+      select: { id: true, email: true, name: true, phone: true, address: true, role: true, createdAt: true }
+    });
+
+    res.status(201).json({ success: true, message: 'Staff account created successfully', data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to create staff account', ...(process.env.NODE_ENV !== 'production' && { error: error.message }) });
+  }
+};
+
+module.exports = { getDashboard, getAllUsers, updateUserRole, getSalesReport, deleteUser, createStaff };

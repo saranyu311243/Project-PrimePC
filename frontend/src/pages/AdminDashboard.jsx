@@ -3,16 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import ReactApexChart from 'react-apexcharts'
 import {
   MdGroup, MdReceiptLong, MdPayments, MdPendingActions, MdRefresh,
-  MdTrendingUp, MdBarChart, MdDashboard, MdAdminPanelSettings,
+  MdTrendingUp, MdBarChart, MdAdminPanelSettings,
   MdDeleteOutline, MdSwapHoriz, MdInventory2, MdLogout,
-  MdAdd, MdEdit, MdCheckCircle, MdSearch,
+  MdAdd, MdEdit, MdCheckCircle, MdSearch, MdPersonAddAlt,
 } from 'react-icons/md'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
 import { useFavorites } from '../hooks/useFavorites'
-import { getDashboard, getAllUsers, updateUserRole, deleteUser, getSalesReport } from '../services/adminService'
+import { getDashboard, getAllUsers, updateUserRole, deleteUser, getSalesReport, createStaffUser } from '../services/adminService'
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
 import ProductModal from '../components/ProductModal'
+import StaffModal from '../components/StaffModal'
 
 const money = (value) => `฿${Number(value || 0).toLocaleString('th-TH')}`
 const ROLES = ['CUSTOMER', 'STAFF', 'ADMIN']
@@ -233,6 +234,11 @@ function AdminDashboard() {
   const [productBusy, setProductBusy] = useState(false)
   const [productSuccess, setProductSuccess] = useState('')
 
+  // Staff creation modal state
+  const [staffModalOpen, setStaffModalOpen] = useState(false)
+  const [staffBusy, setStaffBusy] = useState(false)
+  const [staffError, setStaffError] = useState('')
+
   const load = async () => {
     setLoading(true)
     setError('')
@@ -282,6 +288,22 @@ function AdminDashboard() {
       setError(err.response?.data?.message || 'ลบผู้ใช้ไม่สำเร็จ')
     } finally {
       setBusyId(null)
+    }
+  }
+
+  const handleCreateStaff = async (form) => {
+    setStaffBusy(true)
+    setStaffError('')
+    try {
+      const created = await createStaffUser(form)
+      setUsers((current) => [created, ...current])
+      setStaffModalOpen(false)
+      setProductSuccess('สร้างบัญชีพนักงานเรียบร้อย')
+      setTimeout(() => setProductSuccess(''), 3000)
+    } catch (err) {
+      setStaffError(err.response?.data?.message || 'สร้างบัญชีพนักงานไม่สำเร็จ')
+    } finally {
+      setStaffBusy(false)
     }
   }
 
@@ -380,12 +402,6 @@ function AdminDashboard() {
         <div className="mt-auto pt-4">
           <div className="mb-2 border-t border-blue-800" />
           <button
-            onClick={() => navigate('/staff')}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
-          >
-            <MdDashboard className="h-5 w-5" />แดชบอร์ดพนักงาน
-          </button>
-          <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
           >
@@ -474,6 +490,12 @@ function AdminDashboard() {
                 <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
                   {loading ? '—' : `${filteredUsers.length} คน`}
                 </span>
+                <button
+                  onClick={() => { setStaffError(''); setStaffModalOpen(true) }}
+                  className="flex shrink-0 items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-800 transition"
+                >
+                  <MdPersonAddAlt className="h-5 w-5" />เพิ่มพนักงานใหม่
+                </button>
               </div>
             </div>
 
@@ -744,6 +766,16 @@ function AdminDashboard() {
           onSave={handleSaveProduct}
           onClose={() => { setModalOpen(false); setEditProduct(null) }}
           busy={productBusy}
+        />
+      )}
+
+      {/* Staff Modal */}
+      {staffModalOpen && (
+        <StaffModal
+          onSave={handleCreateStaff}
+          onClose={() => setStaffModalOpen(false)}
+          busy={staffBusy}
+          error={staffError}
         />
       )}
       </div>
