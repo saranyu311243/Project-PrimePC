@@ -217,7 +217,7 @@ function StaffDashboard() {
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
-      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:w-64">
+      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-64 lg:overflow-y-auto">
         <div className="px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
           PRIME<span className="text-sky-300">PC</span>
         </div>
@@ -238,7 +238,8 @@ function StaffDashboard() {
           {sidebarNavItem('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
         </nav>
 
-       
+        <div className="mt-auto pt-4">
+          <div className="mb-2 border-t border-blue-800" />
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
@@ -246,6 +247,7 @@ function StaffDashboard() {
             <MdLogout className="h-5 w-5" />
             ออกจากระบบ
           </button>
+        </div>
       </aside>
 
       <div className="min-w-0 flex-1 rounded-3xl bg-slate-100 p-6 sm:p-8">
