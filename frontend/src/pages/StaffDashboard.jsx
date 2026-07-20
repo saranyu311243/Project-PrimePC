@@ -206,7 +206,7 @@ function StaffDashboard() {
   const sidebarNavItem = (id, label, Icon) => (
     <button
       onClick={() => setTab(id)}
-      className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+      className={`flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-4 py-3 text-sm font-bold transition ${
         tab === id ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-100 hover:bg-white/10'
       }`}
     >
@@ -216,9 +216,9 @@ function StaffDashboard() {
   )
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
       <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-64 lg:overflow-y-auto">
-        <div className="px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
+        <div className="whitespace-nowrap px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
           PRIME<span className="text-sky-300">PC</span>
         </div>
 
@@ -226,13 +226,13 @@ function StaffDashboard() {
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sky-400 text-sm font-black text-blue-950">
             {(user?.name || user?.email || 'S').charAt(0).toUpperCase()}
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-white">{user?.name || user?.email || 'พนักงาน'}</p>
-            <p className="text-xs text-blue-300">{user?.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}</p>
+          <div>
+            <p className="whitespace-nowrap text-sm font-bold text-white">{user?.name || user?.email || 'พนักงาน'}</p>
+            <p className="whitespace-nowrap text-xs text-blue-300">{user?.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}</p>
           </div>
         </div>
 
-        <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-widest text-blue-300">เมนูพนักงาน</p>
+        <p className="whitespace-nowrap px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-widest text-blue-300">เมนูพนักงาน</p>
         <nav className="flex flex-col gap-1">
           {sidebarNavItem('orders', 'คำสั่งซื้อ & จัดส่ง', MdLocalShipping)}
           {sidebarNavItem('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
@@ -242,7 +242,7 @@ function StaffDashboard() {
           <div className="mb-2 border-t border-blue-800" />
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
+            className="flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
           >
             <MdLogout className="h-5 w-5" />
             ออกจากระบบ
