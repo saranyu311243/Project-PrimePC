@@ -11,7 +11,6 @@ import { useFavorites } from '../hooks/useFavorites'
 
 const money = (value) => `฿${Number(value || 0).toLocaleString('th-TH')}`
 
-
 const SHIPMENT_STATUSES = ['PREPARING', 'SHIPPED', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED']
 
 const ORDER_STATUS_TH = {
@@ -28,7 +27,6 @@ const INQUIRY_STATUS_TH = {
   RESPONDED: 'ตอบกลับแล้ว',
   CLOSED: 'ปิดแล้ว',
 }
-
 
 
 const fmtDate = (value) =>
@@ -93,7 +91,7 @@ const parseShippingAddress = (shippingAddress) => {
 
 function StaffDashboard() {
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const { clearCart } = useCart()
   const { clearFavorites } = useFavorites()
   const [tab, setTab] = useState('orders')
@@ -219,9 +217,19 @@ function StaffDashboard() {
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
-      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-64 lg:overflow-y-auto">
+      <aside className="flex shrink-0 flex-col rounded-3xl bg-blue-900 p-4 text-white lg:w-64">
         <div className="px-2 pb-4 pt-1 text-2xl font-black italic tracking-tighter">
           PRIME<span className="text-sky-300">PC</span>
+        </div>
+
+        <div className="mb-4 flex items-center gap-3 rounded-xl bg-white/10 px-3 py-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sky-400 text-sm font-black text-blue-950">
+            {(user?.name || user?.email || 'S').charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-white">{user?.name || user?.email || 'พนักงาน'}</p>
+            <p className="text-xs text-blue-300">{user?.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}</p>
+          </div>
         </div>
 
         <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-widest text-blue-300">เมนูพนักงาน</p>
@@ -230,8 +238,7 @@ function StaffDashboard() {
           {sidebarNavItem('inquiries', 'คำถามลูกค้า', MdQuestionAnswer)}
         </nav>
 
-        <div className="mt-auto pt-4">
-          <div className="mb-2 border-t border-blue-800" />
+       
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-blue-100 transition hover:bg-white/10 hover:text-white"
@@ -239,7 +246,6 @@ function StaffDashboard() {
             <MdLogout className="h-5 w-5" />
             ออกจากระบบ
           </button>
-        </div>
       </aside>
 
       <div className="min-w-0 flex-1 rounded-3xl bg-slate-100 p-6 sm:p-8">

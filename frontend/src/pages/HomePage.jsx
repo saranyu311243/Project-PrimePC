@@ -221,7 +221,7 @@ function HomePage() {
 
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} redirectOnFavorite={false} />
             ))}
           </div>
         </div>

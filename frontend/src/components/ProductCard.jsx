@@ -6,7 +6,7 @@ import { useFavorites } from '../hooks/useFavorites'
 import { useAuth } from '../hooks/useAuth'
 import LoginRequiredToast from './LoginRequiredToast'
 
-function ProductCard({ product, variant = 'default' }) {
+function ProductCard({ product, variant = 'default', redirectOnFavorite = true }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
   const { isAuthenticated } = useAuth()
@@ -19,7 +19,7 @@ function ProductCard({ product, variant = 'default' }) {
       return
     }
     toggleFavorite(product.id)
-    if (!favorite) navigate('/favorites')
+    if (!favorite && redirectOnFavorite) navigate('/favorites')
   }
   const handleAddToCart = (event) => {
     event.preventDefault()
@@ -79,11 +79,24 @@ function ProductCard({ product, variant = 'default' }) {
 
   return (
     <article className="group flex min-h-[430px] flex-col bg-white transition hover:shadow-lg">
+      {showLoginMessage && <LoginRequiredToast onClose={() => setShowLoginMessage(false)} />}
       <Link to={`/products/${product.id}`} className="block">
         <div className="relative grid aspect-square place-items-center overflow-hidden bg-white p-4">
           <span className={`absolute left-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-bold ${product.inStock ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-700 text-white'}`}>
             {product.inStock ? 'มีสินค้า' : 'สินค้าหมด'}
           </span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              handleFavorite()
+            }}
+            className={`absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full border border-slate-100 bg-white shadow-sm transition ${favorite ? 'text-red-500' : 'text-slate-400 hover:text-red-500'}`}
+            aria-label={`เพิ่ม ${product.name} ไปยังรายการโปรด`}
+          >
+            {favorite ? <MdFavorite className="h-5 w-5" /> : <MdFavoriteBorder className="h-5 w-5" />}
+          </button>
           {product.image_url ? (
             <img src={product.image_url} alt={product.name} className="relative h-full w-full object-contain transition duration-300 group-hover:scale-105" />
           ) : (
