@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory, MdDashboard, MdAdminPanelSettings } from 'react-icons/md'
+import { MdArrowDropDown, MdFavoriteBorder, MdHome, MdLogout, MdOutlinePerson, MdOutlineSearch, MdOutlineShoppingCart, MdContactSupport, MdHistory, MdDashboard, MdAdminPanelSettings, MdChatBubbleOutline } from 'react-icons/md'
 import { categories } from '../data/categories'
 import { homeBrandOptions } from '../data/productListConfig'
 import { useCart } from '../hooks/useCart'
@@ -247,6 +247,7 @@ function Navbar() {
                     <>
                       <Link to="/" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdHome className="h-5 w-5" />หน้าหลัก</Link>
                       <Link to="/orders" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdHistory className="h-5 w-5" />ประวัติคำสั่งซื้อ</Link>
+                      <Link to="/chat" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdChatBubbleOutline className="h-5 w-5" />แชทกับทีมงาน</Link>
                       <Link to="/order-tracking" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlineSearch className="h-5 w-5" />ติดตามพัสดุ</Link>
                       <Link to="/profile" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdOutlinePerson className="h-5 w-5" />ข้อมูลส่วนตัว</Link>
                       <Link to="/favorites" onClick={() => setAccountMenuOpen(false)} className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-blue-50 hover:text-blue-700"><MdFavoriteBorder className="h-5 w-5" />สินค้าที่ชื่นชอบ</Link>

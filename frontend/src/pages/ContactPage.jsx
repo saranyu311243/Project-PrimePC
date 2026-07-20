@@ -117,14 +117,22 @@ function ContactPage() {
                 <h2 className="text-2xl font-black text-slate-900">ส่งข้อความเรียบร้อยแล้ว!</h2>
                 <p className="max-w-sm text-sm text-slate-500">
                   ทีมงานจะติดต่อกลับภายใน 24 ชั่วโมง<br />
-                  คุณสามารถตรวจสอบการตอบกลับได้ในภายหลัง
+                  ตรวจสอบการตอบกลับได้ที่หน้าแชทกับทีมงาน
                 </p>
-                <button
-                  onClick={() => setSent(false)}
-                  className="mt-3 rounded-2xl bg-blue-700 px-6 py-3 font-black text-white hover:bg-blue-800 transition"
-                >
-                  ส่งข้อความใหม่
-                </button>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    to="/chat"
+                    className="rounded-2xl bg-blue-700 px-6 py-3 font-black text-white hover:bg-blue-800 transition"
+                  >
+                    ไปที่หน้าแชท
+                  </Link>
+                  <button
+                    onClick={() => setSent(false)}
+                    className="rounded-2xl border border-slate-300 px-6 py-3 font-black text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    ส่งข้อความใหม่
+                  </button>
+                </div>
               </div>
             ) : !isAuthenticated ? (
               <div className="flex flex-col items-center gap-4 py-10 text-center">

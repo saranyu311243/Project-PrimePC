@@ -18,6 +18,7 @@ import PaymentPage from './pages/PaymentPage'
 import OrderTrackingPage from './pages/OrderTrackingPage'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import ContactPage from './pages/ContactPage'
+import ChatPage from './pages/ChatPage'
 import StaffDashboard from './pages/StaffDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 
@@ -63,6 +64,7 @@ function AppContent() {
         <Route path="/order-tracking" element={<OrderTrackingPage />} />
         <Route path="/orders" element={<OrderHistoryPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/chat" element={<ChatPage />} />
       </Route>
       <Route path="/staff" element={<RoleRoute allow={['STAFF']}><StaffDashboard /></RoleRoute>} />
       <Route path="/admin" element={<RoleRoute allow={['ADMIN']}><AdminDashboard /></RoleRoute>} />
