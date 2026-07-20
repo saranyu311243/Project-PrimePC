@@ -9,17 +9,20 @@ import { useProducts } from '../hooks/useProducts'
 function ProductListPage() {
   const { products, loading } = useProducts()
   const [searchParams, setSearchParams] = useSearchParams()
-  const selectedCategory = searchParams.get('category') ?? 'cpu'
+  const selectedCategory = searchParams.get('category') ?? 'all'
   const navbarSearch = searchParams.get('search') ?? ''
   const [searchText, setSearchText] = useState('')
-  const [brands, setBrands] = useState([])
+  const [brands, setBrands] = useState(() => {
+    const brandParam = searchParams.get('brand')
+    return brandParam ? [brandParam.toUpperCase()] : []
+  })
   const [availability, setAvailability] = useState([])
   const [filters, setFilters] = useState({})
   const [price, setPrice] = useState({ min: 0, max: null })
   const sortBy = searchParams.get('sort') ?? 'price-asc'
 
   const eligibleProducts = useMemo(() => products.filter((product) =>
-    product.category === selectedCategory && homeBrandOptions.includes(product.brand?.toUpperCase())), [products, selectedCategory])
+    (selectedCategory === 'all' || product.category === selectedCategory) && homeBrandOptions.includes(product.brand?.toUpperCase())), [products, selectedCategory])
   const maxPrice = Math.max(...eligibleProducts.map((product) => product.price), 1000)
   const currentMax = price.max ?? maxPrice
   const brandOptions = homeBrandOptions.filter((brand) => eligibleProducts.some((product) => product.brand?.toUpperCase() === brand))
@@ -69,7 +72,7 @@ function ProductListPage() {
       <p className="mt-2 text-sm leading-6 text-slate-600">{header.description}</p>
     </section>}
 
-    <div className="mb-6 flex items-end justify-between"><div><p className="text-sm font-bold text-sky-600">PRIMEPC PRODUCTS</p><h2 className="text-3xl font-black">{category?.name}</h2></div><p className="text-sm font-semibold">พบ {filteredProducts.length} รายการ</p></div>
+    <div className="mb-6 flex items-end justify-between"><div><p className="text-sm font-bold text-sky-600">PRIMEPC PRODUCTS</p><h2 className="text-3xl font-black">{category?.name || (navbarSearch ? `ผลการค้นหา: ${navbarSearch}` : 'สินค้าทั้งหมด')}</h2></div><p className="text-sm font-semibold">พบ {filteredProducts.length} รายการ</p></div>
     <div className="mb-7 flex gap-3 border border-slate-200 bg-white p-4 shadow-sm">
       <label className="flex flex-1 items-center gap-3 border border-slate-200 px-4"><MdOutlineSearch className="text-slate-400" /><input value={searchText} onChange={(e) => setSearchText(e.target.value)} placeholder="ค้นหาชื่อสินค้า แบรนด์ หรือรายละเอียด" className="w-full py-3 text-sm outline-none" /></label>
       <select value={sortBy} onChange={(e) => updateSort(e.target.value)} className="border border-slate-200 px-4 text-sm font-semibold outline-none"><option value="price-asc">ราคาต่ำไปสูง</option><option value="price-desc">ราคาสูงไปต่ำ</option></select>
