@@ -3,13 +3,13 @@ import { MdKeyboardArrowRight, MdOutlineSearch } from 'react-icons/md'
 import { useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import { categories } from '../data/categories'
-import { categoryFilterDefinitions, categoryHeaders, categorySearchAliases, homeBrandOptions } from '../data/productListConfig'
+import { categoryFilterDefinitions, categoryHeaders, categorySearchAliases } from '../data/productListConfig'
+import { matchesProductFilter } from '../data/productFilterUtils'
 import { useProducts } from '../hooks/useProducts'
 
-function ProductListPage() {
+function CategoryProductListPage({ selectedCategory }) {
   const { products, loading } = useProducts()
   const [searchParams, setSearchParams] = useSearchParams()
-  const selectedCategory = searchParams.get('category') ?? 'all'
   const navbarSearch = searchParams.get('search') ?? ''
   const [searchText, setSearchText] = useState('')
   const [brands, setBrands] = useState(() => {
@@ -21,13 +21,16 @@ function ProductListPage() {
   const [price, setPrice] = useState({ min: 0, max: null })
   const sortBy = searchParams.get('sort') ?? 'price-asc'
 
-  const eligibleProducts = useMemo(() => products.filter((product) =>
-    (selectedCategory === 'all' || product.category === selectedCategory) && homeBrandOptions.includes(product.brand?.toUpperCase())), [products, selectedCategory])
+  const eligibleProducts = useMemo(
+    () => products.filter((product) => selectedCategory === 'all' || product.category === selectedCategory),
+    [products, selectedCategory],
+  )
   const maxPrice = Math.max(...eligibleProducts.map((product) => product.price), 1000)
   const currentMax = price.max ?? maxPrice
-  const brandOptions = homeBrandOptions.filter((brand) => eligibleProducts.some((product) => product.brand?.toUpperCase() === brand))
+  const brandOptions = useMemo(() => [...new Set(eligibleProducts
+    .map((product) => product.brand?.trim().toUpperCase())
+    .filter(Boolean))].sort(), [eligibleProducts])
   const definitions = useMemo(() => categoryFilterDefinitions[selectedCategory] ?? [], [selectedCategory])
-
   const filteredProducts = useMemo(() => {
     const activeSearch = searchText.trim() || navbarSearch
     const tokens = activeSearch.toLowerCase().split(/\s+/).filter(Boolean)
@@ -37,8 +40,7 @@ function ProductListPage() {
       const matchesCustom = definitions.every((definition) => {
         const selected = filters[definition.field] ?? []
         if (!selected.length) return true
-        if (definition.match === 'includes') return selected.some((value) => String(product[definition.field] ?? '').toLowerCase().includes(String(value).toLowerCase()))
-        return selected.includes(product[definition.field])
+        return selected.some((value) => matchesProductFilter(product, definition, value))
       })
       return tokens.every((token) => haystack.includes(token)) &&
         (!brands.length || brands.includes(product.brand?.toUpperCase())) &&
@@ -89,6 +91,14 @@ function ProductListPage() {
       <section aria-live="polite">{loading ? <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><p className="text-lg font-bold text-slate-500">กำลังโหลดสินค้า...</p></div> : filteredProducts.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{filteredProducts.map((product) => <ProductCard key={product.id} product={product} variant="listing" />)}</div> : <div className="grid min-h-80 place-items-center bg-white p-8 text-center shadow-sm"><p className="text-xl font-extrabold">ไม่พบสินค้าที่ค้นหา</p></div>}</section>
     </div>
   </div>
+}
+
+function ProductListPage() {
+  const [searchParams] = useSearchParams()
+  const selectedCategory = searchParams.get('category') ?? 'all'
+
+  // Remount category-local filter state whenever navigation selects a new category.
+  return <CategoryProductListPage key={selectedCategory} selectedCategory={selectedCategory} />
 }
 
 export default ProductListPage

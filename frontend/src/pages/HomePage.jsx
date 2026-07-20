@@ -67,11 +67,8 @@ const serviceHighlights = [
 function HomePage() {
   const [selectedFeaturedCategory, setSelectedFeaturedCategory] = useState('cpu')
   const { products } = useProducts()
-  const homeBrandNames = new Set(brands.map((brand) => brand.id.toUpperCase()))
   const featuredProducts = products.filter(
-    (product) =>
-      product.category === selectedFeaturedCategory &&
-      homeBrandNames.has(product.brand?.toUpperCase()),
+    (product) => product.category === selectedFeaturedCategory,
   )
   const featuredProductsUrl = `/products?category=${selectedFeaturedCategory}`
 

@@ -56,11 +56,12 @@ export const categoryFilterDefinitions = {
   cpu: [values('Processor Number', 'name', ['CORE i3', 'CORE i5', 'CORE i7', 'CORE i9', 'Ryzen 5', 'Ryzen 7', 'Ryzen 9', 'ULTRA 5', 'ULTRA 7', 'ULTRA 9'], 'includes')],
   motherboard: [values('Chipset', 'chipset', ['H610', 'B550', 'A520', 'X670', 'Z790', 'B760', 'B650', 'X870', 'Z890', 'B860', 'B850', 'H810', 'A620A', 'B840'])],
   gpu: [
-    values('GPU Series', 'gpuSeries', ['NVIDIA GeForce RTX 50 Series', 'NVIDIA GeForce RTX 40 Series', 'AMD Radeon RX 9000 Series', 'AMD Radeon RX 7000 Series', 'Intel Arc B Series']),
-    values('GPU Model', 'gpuModel', ['GeForce RTX 5090', 'GeForce RTX 5080', 'GeForce RTX 5070', 'GeForce RTX 5060 Ti', 'Radeon RX 9070 XT', 'Radeon RX 7900 XTX', 'Radeon RX 7800 XT', 'Intel Arc B580']),
+    values('GPU Series', 'gpuSeries', ['NVIDIA GeForce RTX 50 Series', 'NVIDIA GeForce RTX 40 Series', 'AMD Radeon RX 9000 Series', 'AMD Radeon RX 7000 Series', 'Intel Arc A Series', 'Intel Arc B Series']),
   ],
-  ram: [values('Memory Capacity', 'memoryCapacity', ['8GB (8GBx1)', '16GB (8GBx2)', '16GB (2x 8GB)', '32GB (2x 16GB)', '64GB (32GBx2)']), values('Memory Type', 'memoryType', ['DDR5', 'DDR4'])],
+  ram: [values('Memory Capacity', 'memoryCapacity', ['8GB (8GBx1)', '16GB (16GBx1)', '16GB (8GBx2)', '16GB (2x 8GB)', '32GB (16GBx2)', '32GB (2x 16GB)', '32GB (32GBx1)', '64GB (32GBx2)', '64GB (64GBx1)']), values('Memory Type', 'memoryType', ['DDR5', 'DDR4'])],
+  storage: [values('Storage Type', 'storageType', ['Solid State Drive', 'Hard Disk Drive']), values('Capacity', 'capacity', ['256GB', '512GB', '1TB', '2TB', '4TB'])],
   psu: [values('Continuous Power W', 'continuousPower', [550, 600, 650, 750, 850, 1000, 1050, 1200, 1250, 1300, 3000])],
-  notebook: [values('Storage', 'notebookStorage', ['256GB PCIe NVMe M.2 SSD', '512GB PCIe NVMe M.2 SSD', '512GB PCIe 4.0 x4 NVMe M.2 SSD', '1TB PCIe 4.0 NVMe M.2 SSD']), values('Memory', 'notebookMemory', ['8GB', '16GB', '24GB', '32GB', '64GB', '96GB']), values('Screen Size', 'notebookScreenSize', ['14"', '15"', '15.3"', '15.6"', '16"', '17.3"'])],
-  monitor: [values('Display Size', 'monitorDisplaySize', ['15"', '16"', '22"', '24"', '25"', '27"', '32"', '34"']), values('Resolution', 'monitorResolution', ['1280 x 720', '1920 x 1080', '2560 x 1440', '2560 x 1600', '3440 x 1440', '3840 x 2160', '5120 x 2880']), values('Refresh Rate', 'monitorRefreshRate', ['60Hz', '100Hz', '120Hz', '144Hz', '165Hz', '180Hz', '240Hz', '280Hz', '300Hz', '360Hz', '480Hz', '540Hz'])],
+  cooling: [values('Cooling Type', 'coolingType', ['Liquid Cooling', 'Air Cooling', 'Case Fan'])],
+  notebook: [values('Screen Size', 'notebookScreenSize', ['13.3"', '13.4"', '13.6"', '14"', '15.6"', '16"'])],
+  monitor: [values('Display Size', 'monitorDisplaySize', ['15"', '16"', '22"', '23.8"', '24"', '24.5"', '25"', '27"', '32"', '34"']), values('Resolution', 'monitorResolution', ['1280 x 720', '1920 x 1080', '2560 x 1440', '2560 x 1600', '3440 x 1440', '3840 x 2160', '5120 x 2880']), values('Refresh Rate', 'monitorRefreshRate', ['60Hz', '100Hz', '120Hz', '144Hz', '165Hz', '180Hz', '240Hz', '280Hz', '300Hz', '360Hz', '480Hz', '540Hz'])],
 }

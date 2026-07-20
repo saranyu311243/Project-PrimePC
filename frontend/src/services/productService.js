@@ -1,4 +1,5 @@
 import api from '../api/axios'
+import { inferProductFilterFields } from '../data/productFilterUtils'
 
 /**
  * Normalize a product coming from the backend into the shape the UI expects.
@@ -9,9 +10,13 @@ import api from '../api/axios'
  */
 export const normalizeProduct = (p) => {
   if (!p) return null
-  const specs = p.specs && typeof p.specs === 'object' ? p.specs : {}
+  const rawSpecs = p.specs && typeof p.specs === 'object' ? p.specs : {}
+  const specs = Object.fromEntries(Object.entries(rawSpecs).filter(([, value]) =>
+    value !== undefined && value !== null && String(value).trim() !== ''))
+  const inferredFilterFields = inferProductFilterFields(p)
   const stockQuantity = typeof p.stock === 'number' ? p.stock : 0
   return {
+    ...inferredFilterFields,
     ...specs,
     ...p,
     inStock: Boolean(p.isAvailable) && stockQuantity > 0,
